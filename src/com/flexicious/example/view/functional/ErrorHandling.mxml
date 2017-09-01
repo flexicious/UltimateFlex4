@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:flxs="com.flexicious.nestedtreedatagrid.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridItemEditEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.core.ITextInput;
+			import mx.core.UIComponent;
+			
+			
+			
+			
+			protected function validate(editor:UIComponent):Boolean
+			{
+				var cell:IFlexDataGridCell=grid.getCurrentEditingCell();
+				var txt:ITextInput = editor as ITextInput;
+				if(txt.text.length<3){
+					grid.setErrorByObject(cell.rowInfo.data,cell.column.dataField,"Legal name must be greater than 3 characters");
+				}else{
+					grid.clearErrorByObject(cell.rowInfo.data);
+				}
+				
+				//If you return true, the grid will highlight the error in red and move on to the next row. 
+				//If you return false, the edit box would stay in place and not let the user move forward 
+				//unless the error is corrected.
+				
+				return (txt.text.length>=3);
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:Label text="In this example, we demonstrate error handling styles. Change the legal name column to less than 3 characters to see the error message."/>
+	<flxs:FlexDataGrid width="100%" height="100%" id="grid" editable="true"
+									 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+									 enableFooters="true">
+		<flxs:columnLevel >
+			<flxs:FlexDataGridColumnLevel selectedKeyField="id" itemEditCancel="grid.clearErrorByObject(event.cell.rowInfo.data)">
+				<flxs:columns>
+					<flxs:FlexDataGridCheckBoxColumn id="cbCol" />
+					<flxs:FlexDataGridColumn dataField="id" headerText="ID" filterControl="TextInput" 
+											 />
+					<flxs:FlexDataGridColumn dataField="legalName" headerText="Legal Name" enableDataCellOptmization="false"
+											 editable="true" itemEditorValidatorFunction="validate" />
+					<flxs:FlexDataGridColumn dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" headerAlign="center" footerLabel="Avg:" footerOperation="average" 
+														   footerAlign="center" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<flxs:FlexDataGridColumn dataField="numEmployees" headerText="Num Employees" textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<flxs:FlexDataGridColumn dataField="earningsPerShare" headerText="EPS" textAlign="right" footerLabel="Avg:" footerOperation="average" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<flxs:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price" textAlign="right" footerLabel="Avg:" footerOperation="average" 
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</flxs:columns>
+			</flxs:FlexDataGridColumnLevel>
+			
+		</flxs:columnLevel>
+		
+	</flxs:FlexDataGrid>
+	
+</mx:VBox>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:grids="com.flexicious.grids.*"
+		 xmlns:columns="com.flexicious.grids.columns.*" xmlns:mate="http://mate.asfusion.com/" width="100%" creationComplete="onCreationComplete()"
+		 xmlns:flxs="com.flexicious.nestedtreedatagrid.*">
+	
+	<mx:RemoteObject id="dotNetRemoteObject" showBusyCursor="true" destination="fluorine" source="Site.Services.FlexService">
+		<mx:method name="getEmployees" result="onEmployeesResult(event)"/>
+		<mx:method name="getAllDepartments" result="onDepartmentsResult(event)"/>
+	</mx:RemoteObject>
+	
+	<mx:Script>
+		<![CDATA[
+			import com.flexicious.controls.MultiSelectComboBox;
+			import com.flexicious.controls.Spinner;
+			import com.flexicious.example.model.classic.Employee;
+			import com.flexicious.example.model.classic.EmployeeGenerator;
+			import com.flexicious.example.model.classic.MyFilter;
+			import com.flexicious.example.model.classic.MyPrintExportFilter;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.export.ExportController;
+			import com.flexicious.grids.dependencies.IDataGridFilter;
+			import com.flexicious.grids.dependencies.IDataGridFilterColumn;
+			import com.flexicious.grids.events.FilterPageSortChangeEvent;
+			import com.flexicious.grids.events.PrintExportDataRequestEvent;
+			import com.flexicious.grids.filters.Filter;
+			import com.flexicious.grids.filters.FilterExpression;
+			import com.flexicious.grids.filters.PrintExportFilter;
+			import com.flexicious.nestedtreedatagrid.events.ExtendedFilterPageSortChangeEvent;
+			import com.flexicious.print.PrintController;
+			import com.flexicious.utils.DateRange;
+			import com.flexicious.utils.UIUtils;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.advancedDataGridClasses.AdvancedDataGridColumn;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			//we get this list from server on initial load
+			[Bindable()]
+			private var _serverDepartments:ArrayCollection;
+			[Bindable()]
+			private var _totalRecords:int;
+			
+			//fire off the server call on initial load
+			private function onCreationComplete():void
+			{
+				//for the grid bound to the server, 
+				//just get the first page of employees
+				var filter:MyFilter=new MyFilter(null);
+				filter.pageIndex=0;
+				filter.pageSize=dgEmployeesServer.pageSize;
+				
+				//this will get the list of all departments
+				dotNetRemoteObject.getAllDepartments();
+				//just get the first page initially...
+				dotNetRemoteObject.getEmployees(filter);
+				
+				
+				
+				
+				
+			}
+			private var filterTriggerColumn:String="";
+			//This event is fired when the user changes the sort, page or filter 
+			private function onFilterPageSortChange(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//here we build our custom filter object and send it to the server
+				dotNetRemoteObject.getEmployees(new MyFilter(event.filter));
+				//we keep track of the field that triggered the filter, to ensure we set the focus back into it
+				if(event.triggerEvent&&event.triggerEvent.currentTarget is IDataGridFilterColumn)
+				filterTriggerColumn=event.triggerEvent.currentTarget.searchField;
+				
+			}
+			
+			//This event is only fired when the user requests to print data that is currently
+			//not loaded in the grid. It is only applicable when filterPageSortMode is set to 
+			//'server', because in this mode, the grid only requests the current page of data
+			//from the server.
+			//For example, if the user asks to print pages 1-4 of a 10
+			//page grid, and we're currently on page #4, on the client, we only have the records
+			//from page #4. So we have to get the records from pages 1-4 from the server.
+			//when this data comes back, we just set the grids.printExportData property, and the
+			//print/export mechanism continues as usual.
+			private function onPrintExportDataRequest(event:PrintExportDataRequestEvent):void
+			{
+				//here we build our custom filter object and send it to the server
+				dotNetRemoteObject.getEmployees(new MyPrintExportFilter(event.filter as PrintExportFilter));
+			}
+			
+			//Function to call when server call returns.
+			private function onEmployeesResult(event:ResultEvent):void
+			{
+				if (event.result.isPrintExportResponse)
+				{
+					//This response came back as a result of a print request. so set
+					// the print export data on the grid and have the print/export
+					//mechanism continue on its way
+					dgEmployeesServer.printExportData=event.result.records;
+					
+				}
+				else
+				{
+					//the dummy service just sends back the page to display, and the total records.
+					//what you send back from your service will need to reflect in the below
+					//two lines of code.
+					dgEmployeesServer.totalRecords=event.result.totalRecords;
+					dgEmployeesServer.dataProvider=event.result.records as ArrayCollection;
+					_totalRecords=event.result.totalRecords;
+					dgEmployeesServer.rebuildFooter();
+					
+					//if the filter was a result of user interaction, we set the focus into the field again.
+					if(filterTriggerColumn){
+						dgEmployeesServer.validateNow();
+						dgEmployeesServer.setFilterFocus(filterTriggerColumn);
+						filterTriggerColumn="";
+					}
+				}
+				
+			}
+			
+			// Callback function that highlights in red 
+			// all rows for >75,000
+			public function myStyleFunc(data:Object, col:AdvancedDataGridColumn):Object
+			{
+				if (data["annualSalary"] > 75000)
+					return {color:0xFF0000};
+				return null;
+			}
+			
+			private function onDepartmentsResult(event:ResultEvent):void
+			{
+				_serverDepartments=event.result as ArrayCollection;
+				//we need to call this to rebuild the filter row on
+				//basis of updated data from the server.		
+				dgEmployeesServer.refreshLayout();
+				
+				// we set autoLoadPreferences=false in the grid definition. we do so becasue
+				//when user saves preferences, we only store the selected values of the filter multiselect comboboxes
+				//however, to build the filter. we really need the full data provider. so we wait until we get the grid
+				//fully built the first time around, then we allply our preferences. This prevents the filters from being 
+				//cleard out after preferences are applied and then the dataprovider is set. 
+				if(_serverDepartments.length>0){
+					dgEmployeesServer.loadPreferences();
+				}
+			}
+		]]>
+	</mx:Script>
+	
+	
+	<mx:HBox width="100%">
+		<mx:Label text="# Selected Ids: {dgEmployeesServer.selectedKeys.length}"/>
+		<mx:Spacer width="100%"/>
+		<mx:Button label="View Explanation For Example" click="UIUtils.openBrowserPopup('http://www.flexicious.com/Home/AdvancedFlexDataGridPagingFilterServer',
+				   'width=1024,height=768,lef t=0,top=0, toolbar=No,location=No,scrollbars=Yes,status=No,resizable=No,fullscreen=No')"/>
+	</mx:HBox>
+	
+	<!--Datagrid with filterPageSortMode = server (Only the first page is loaded from the server (see onCreationCompelete.
+	The grid then fires filterPageSortChange when the user requests another page or sort or filter.
+	This is then handled by the server call and data is bound on server call return. See onFilterPageSortChange
+	This grid also demonstrates how to handle the scenario when the user requests a print/export of data currently not loaded.. See onPrintExportDataRequest))-->
+	<mx:TextArea width="100%" text="This example shows a ADVANCED Data Grid bound to a .NET implementation. The C# demonsrates the construction of Entity HQL on basis of the Flexicious filter. This grid also demonstrates how to handle the scenario when the user requests a print/export of data currently not loaded. (See onPrintExportDataRequest). It also shows how to use a Custom Pager Control."/>
+	<flxs:FlexDataGrid showSpinnerOnFilterPageSort="true" enableFilters="true" enableCopy="true" enableFooters="true" 
+									enablePreferencePersistence="true" preferencePersistenceKey="serverGridDotNet"
+									enablePaging="true" id="dgEmployeesServer" height="271" 
+									pageSize="20" filterPageSortMode="server" 
+									enablePrint="true" enableExport="true"
+									clearSelectionOnDataProviderChange="false"
+									enableSplitHeader="true" enableMultiColumnSort="true"
+									enableEagerDraw="true"
+									initialSortField="firstName"
+									filterPageSortChange="onFilterPageSortChange(event)" width="100%" 
+									filterRowHeight="30" 
+									printExportDataRequest="onPrintExportDataRequest(event)"  selectedKeyField="employeeId"
+									autoLoadPreferences="false">
+		<flxs:groupedColumns>
+			<flxs:FlexDataGridCheckBoxColumn width="15"/>
+			<flxs:FlexDataGridColumn headerText="ID" dataField="employeeId" filterControl="NumericTextInput" filterTriggerEvent="enterKeyUp"/>
+			<flxs:FlexDataGridColumnGroup headerText="Name">
+				<flxs:columns>
+					<flxs:FlexDataGridColumn headerText="First Name" dataField="firstName" filterOperation="BeginsWith" filterControl="TextInput" filterTriggerEvent="enterKeyUp"/>
+					<flxs:FlexDataGridColumn headerText="Last Name" dataField="lastName" filterOperation="BeginsWith" filterControl="TextInput" filterTriggerEvent="enterKeyUp"/>
+				</flxs:columns>
+			</flxs:FlexDataGridColumnGroup>
+			<flxs:FlexDataGridColumn 
+				headerText="Department" dataField="department" filterOperation="Equals" 
+				searchField="department.departmentId" sortField="department.departmentName"
+				filterComboBoxDataProvider="{_serverDepartments}"
+				filterComboBoxDataField="departmentId"
+				filterComboBoxLabelField="departmentName"
+				filterControl="MultiSelectComboBox"
+				filterComboBoxWidth="150"
+				/>
+			<flxs:FlexDataGridColumn headerText="Phone" dataField="phoneNumber" filterOperation="Contains" filterControl="TextInput"/>
+			<flxs:FlexDataGridColumn headerText="Active" dataField="isActive" filterOperation="Equals" filterControl="TriStateCheckBox"/>
+			<flxs:FlexDataGridColumn headerText="Hire Date" dataField="hireDate" filterControl="DateComboBox" labelFunction="UIUtils.dataGridFormatDateLabelFunction" 
+													filterDateRangeOptions="{[DateRange.DATE_RANGE_THISQUARTER,DateRange.DATE_RANGE_LASTQUARTER,DateRange.DATE_RANGE_THISYEAR,DateRange.DATE_RANGE_LASTYEAR,DateRange.DATE_RANGE_CUSTOM]}" 
+													filterComboBoxWidth="150" footerLabel="Count: {_totalRecords}"/>
+			<flxs:FlexDataGridColumn textAlign="right" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+													width="100" headerText="Annual Salary" 
+													dataField="annualSalary" footerOperation="average" footerLabel="Avg:" 
+													filterControl="NumericRangeBox"/>
+		</flxs:groupedColumns>
+	</flxs:FlexDataGrid>
+</mx:VBox>

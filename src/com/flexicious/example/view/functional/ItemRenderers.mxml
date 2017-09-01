@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:fx="http://ns.adobe.com/mxml/2009"  
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*">
+	<!---
+	<p>
+	This example demonstrates a number of ways in which you can customize cell display in the Flexicious Ultimate Flex DataGrid.
+	</p>
+	<ul>
+		<li>The ID column uses the useUnderLine="true" useHandCursor="true" and enableCellClickRowSelect="false" properties</li>
+		<li>The Name column uses the itemRenderer property to specify a text box class property</li>
+		<li>The Website column uses the linkText="View Website" useHandCursor="true" useUnderLine="true" headerText="Website" and enableCellClickRowSelect properties. Description of each of these can be found on the FlexDataGridColumn asdocs.</li>
+		<li>The lastStockPrice column uses itemRenderer property to display an Image of the stock chart thumbnail.</li>
+		<li>The last column, Is Active, uses a inline header renderer, and an inline item renderer. 
+			We wire up the Change Event of the contained Checkboxes within the renderers, to update the "active" flag on the model object.</li>
+	</ul>
+	-->
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.billing.LineItem;
+			import com.flexicious.example.model.organizations.Organization;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.example.view.support.OrgTitleWindow;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.nestedtreedatagrid.print.ExtendedPrintController;
+			import com.flexicious.nestedtreedatagrid.print.ExtendedPrintOptionsView;
+			import com.flexicious.nestedtreedatagrid.valueobjects.RowPositionInfo;
+			import com.flexicious.print.PrintOptions;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			import pdf.AlivePdfGenerator;
+			import pdf.AlivePdfPrinter;
+			
+			
+			/**
+			 * This method is called to respond to the ITEM CLICK event handler on the grid. <br/>
+			 * In here, if it was the ID column that caused the event, we add the Org Details popup.
+			 * If it was teh View Web Site column that triggered this event, we open up a new browser window
+			 * with the URL of the website of the company we selected.
+			 */
+			protected function grid_itemClickHandler(event:FlexDataGridEvent):void
+			{
+				if(event.column.dataField=="id"){
+					var orgDetails:OrgTitleWindow=new OrgTitleWindow();
+					UIUtils.addPopUp(orgDetails,this);
+					orgDetails.show(event.item as Organization);
+				}else if(event.column.linkText=="View Website"){
+					UIUtils.openBrowserPopup((event.item as Organization).url);
+				}
+			}
+			public function onPrint():void{
+				var po:PrintOptions=PrintOptions.create();
+				po.asynch=true;
+				po.asynchTimeInterval=2000;
+				po.asynchDelayCapture=true;
+				po.printOptionsViewrenderer = new ClassFactory(ExtendedPrintOptionsView);
+				ExtendedPrintController.instance().print(grid,po)
+			}
+			public function onPdf():void{
+				var po:PrintOptions=PrintOptions.create();
+				po.asynch=true;
+				po.printToPdf=true;
+				po.asynchTimeInterval=2000;
+				po.asynchDelayCapture=true;
+				po.printOptionsViewrenderer = new ClassFactory(ExtendedPrintOptionsView);
+				ExtendedPrintController.instance().print(grid,po)
+			}
+
+
+			protected function grid_headerClickedHandler(event:FlexDataGridEvent):void
+			{
+				if(event.triggerEvent.target is mx.controls.CheckBox){
+					//user clicked on a checkbox header, so do not sort
+					event.preventDefault();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true" enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true" itemClick="grid_itemClickHandler(event)"
+									 dataProvider="{FlexiciousMockGenerator.instance().getDeepOrgList()}"
+									 pdfPrinter="{new AlivePdfPrinter()}"
+									 toolbarPrintHandlerFunction="onPrint" headerClicked="grid_headerClickedHandler(event)"
+									 toolbarPdfHandlerFunction="onPdf"
+									 selectedKeyField="id" enablePaging="true" pageSize="50" enableFilters="true"
+									 enableFooters="true"  initialSortField="legalName" initialSortAscending="true"
+									 preferencePersistenceKey="itemRenderers">
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel pageSize="20" childrenField="deals" enableFooters="true" selectedKeyField="id">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="ID" filterControl="TextInput" useUnderLine="true" useHandCursor="true"
+														   enableCellClickRowSelect="false"/>
+					
+					<nestedtreedatagrid:FlexDataGridColumn headerText="Editable Name" dataField="legalName" 
+					   filterControl="TextInput" filterOperation="BeginsWith"  
+					   paddingRight="5" enableCellClickRowSelect="false">
+						<nestedtreedatagrid:itemRenderer>
+							<fx:Component>
+								<mx:TextInput change="if(this.text.length>0)data.legalName=this.text" height="20"/>	
+							</fx:Component>
+						</nestedtreedatagrid:itemRenderer>
+					</nestedtreedatagrid:FlexDataGridColumn>
+					
+					<nestedtreedatagrid:FlexDataGridColumn dataField="legalName" headerText="Legal Name">
+						<nestedtreedatagrid:itemRenderer>
+							<fx:Component>
+								<mx:Canvas horizontalScrollPolicy="off">
+									<fx:Script>
+										<![CDATA[
+											import com.flexicious.example.view.support.OrgFlyover;
+											import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+											import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+
+											protected function infoIcon_rollOverHandler(event:MouseEvent):void
+											{
+												(parent as IFlexDataGridCell).level.grid.showTooltip(infoIcon,new OrgFlyover(),data )
+											}
+
+										]]>
+									</fx:Script>
+									<mx:Label left="0" text="{data.legalName}" paddingRight="50"/>
+									<mx:Image top="5" right="2" id="infoIcon" source="@Embed('/assets/images/info.gif')" rollOver="infoIcon_rollOverHandler(event)"
+											  useHandCursor="true" buttonMode="true" mouseChildren="false"/>
+								</mx:Canvas>
+							</fx:Component>
+						</nestedtreedatagrid:itemRenderer>
+						</nestedtreedatagrid:FlexDataGridColumn>
+					<nestedtreedatagrid:FlexDataGridColumn linkText="View Website" useHandCursor="true" useUnderLine="true" headerText="Website" enableCellClickRowSelect="false"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price">
+						<nestedtreedatagrid:itemRenderer>
+							<fx:Component>
+								<mx:Image source="{data.chartUrl}" scaleContent="false"/>
+							</fx:Component>
+						</nestedtreedatagrid:itemRenderer>	
+					</nestedtreedatagrid:FlexDataGridColumn>
+					<nestedtreedatagrid:FlexDataGridColumn  enableCellClickRowSelect="false" width="50" >
+						<nestedtreedatagrid:headerRenderer>
+							<fx:Component>
+								<mx:HBox width="100%" horizontalAlign="center" horizontalScrollPolicy="off">
+									<mx:CheckBox label="Is Active?" change="checkbox1_changeHandler(event)" click="event.stopImmediatePropagation();event.stopPropagation()" >
+										<fx:Script>
+											<![CDATA[
+												import com.flexicious.example.model.organizations.Organization;
+												protected function checkbox1_changeHandler(event:Event):void
+												{
+													for each(var org:Organization in parentDocument.grid.dataProvider){
+														org.isActive = event.target.selected;
+													}
+													//parentDocument.grid.reDraw();
+												}
+											]]>
+										</fx:Script>
+									</mx:CheckBox>
+								</mx:HBox>
+							</fx:Component>
+						</nestedtreedatagrid:headerRenderer>
+						<nestedtreedatagrid:itemRenderer>
+							<fx:Component>
+								<mx:HBox width="100%" horizontalAlign="center" horizontalScrollPolicy="off">
+									<mx:CheckBox id="cbActive" selected="{data.isActive}" change="data.isActive=cbActive.selected"/>
+								</mx:HBox>
+							</fx:Component>
+						</nestedtreedatagrid:itemRenderer>
+					</nestedtreedatagrid:FlexDataGridColumn>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" selectedKeyField="id"
+																initialSortField="dealDate" initialSortAscending="false">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="dealDescription" headerText="Deal Description"   
+																   footerLabel="Count:" footerOperation="count" footerAlign="center"
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+																   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="dealDate" headerText="Deal Date" 
+																   labelFunction="UIUtils.dataGridFormatDateLabelFunction"
+																   resizable="false"/>
+						
+							<nestedtreedatagrid:FlexDataGridColumn sortable="false" enableCellClickRowSelect="false" width="50" >
+								<nestedtreedatagrid:headerRenderer>
+									<fx:Component>
+										<mx:HBox width="100%" horizontalAlign="center" horizontalScrollPolicy="off">
+											<mx:CheckBox label="Finalized?" change="checkbox1_changeHandler(event)">
+												<fx:Script>
+													<![CDATA[
+														import com.flexicious.example.model.organizations.Organization;
+														import com.flexicious.example.model.transactions.Deal;
+														protected function checkbox1_changeHandler(event:Event):void
+														{
+															for each(var deal:Deal in parent["rowInfo"].data.deals){
+																deal.finalized = event.target.selected;
+															}
+														}
+													]]>
+												</fx:Script>
+											</mx:CheckBox>
+										</mx:HBox>
+									</fx:Component>
+								</nestedtreedatagrid:headerRenderer>
+								<nestedtreedatagrid:itemRenderer>
+									<fx:Component>
+										<mx:HBox width="100%" horizontalAlign="center" horizontalScrollPolicy="off">
+											<mx:CheckBox id="cbActive" selected="{data.finalized}" change="data.finalized=cbActive.selected"/>
+										</mx:HBox>
+									</fx:Component>
+								</nestedtreedatagrid:itemRenderer>
+							</nestedtreedatagrid:FlexDataGridColumn>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+</mx:HBox>

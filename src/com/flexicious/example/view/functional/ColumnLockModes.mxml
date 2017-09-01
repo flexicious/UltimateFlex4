@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import pdf.AlivePdfGenerator;
+
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				grid.invalidateCells();
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="650" height="100%" enablePrint="true" enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true" horizontalScrollPolicy="auto" preferencePersistenceKey="columnLockModes"
+									 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+									 useCompactPreferences="true"
+									 enableMultiColumnSort="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)">
+		<nestedtreedatagrid:columnLevel>
+			<nestedtreedatagrid:FlexDataGridColumnLevel selectedKeyField="id" enablePaging="true" pageSize="50" enableFilters="true"
+														enableFooters="true"
+														>
+				
+				<nestedtreedatagrid:groupedColumns>
+					
+					<nestedtreedatagrid:FlexDataGridColumn dataField="orgIndex" headerText="orgIndex" 
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn id="colId" dataField="id" headerText="ID" filterControl="TextInput" columnLockMode="left"/>
+					<nestedtreedatagrid:FlexDataGridColumn id="colLegalName" dataField="legalName" headerText="Legal Name" columnLockMode="left"/>
+						<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Address">
+							<nestedtreedatagrid:columnGroups>
+								<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Lines" >
+									<nestedtreedatagrid:columns>
+										<nestedtreedatagrid:FlexDataGridColumn id="colLine1" dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+										<nestedtreedatagrid:FlexDataGridColumn id="colLine2" dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+									</nestedtreedatagrid:columns>
+								</nestedtreedatagrid:FlexDataGridColumnGroup>
+								<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Region">
+									<nestedtreedatagrid:columns>
+										<nestedtreedatagrid:FlexDataGridColumn id="colCity" dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+										<nestedtreedatagrid:FlexDataGridColumn id="colState" dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+										<nestedtreedatagrid:FlexDataGridColumn id="colCountry" dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+									</nestedtreedatagrid:columns>
+								</nestedtreedatagrid:FlexDataGridColumnGroup>
+							</nestedtreedatagrid:columnGroups>
+						</nestedtreedatagrid:FlexDataGridColumnGroup>
+						<nestedtreedatagrid:FlexDataGridColumnGroup  headerText="Financials" >
+							<nestedtreedatagrid:columns>
+								<nestedtreedatagrid:FlexDataGridColumn id="colAnnRev" dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" width="50" 
+												   headerAlign="center" footerLabel="Avg:" footerOperation="average" footerAlign="center" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+												   columnLockMode="right"/>
+								<nestedtreedatagrid:FlexDataGridColumn id="colNumEmp" dataField="numEmployees" headerText="Num Employees" textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+																	   columnLockMode="right" width="50" />
+								<nestedtreedatagrid:FlexDataGridColumn id="colEPS"  dataField="earningsPerShare" headerText="EPS" textAlign="right" footerLabel="Avg:" footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+																	   columnLockMode="right" width="50" />
+								<nestedtreedatagrid:FlexDataGridColumn id="colStockPrice" dataField="lastStockPrice" headerText="Stock Price" textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+																	   columnLockMode="right" width="50"  />
+							</nestedtreedatagrid:columns>
+						</nestedtreedatagrid:FlexDataGridColumnGroup>
+					</nestedtreedatagrid:groupedColumns>
+				</nestedtreedatagrid:FlexDataGridColumnLevel>
+			</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+</mx:VBox>

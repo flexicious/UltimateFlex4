@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:fx="http://ns.adobe.com/mxml/2009"  creationComplete="hbox1_creationCompleteHandler(event)"
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.events.FlexEvent;
+			
+			protected function hbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" 
+									 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+									 preferencePersistenceKey="flexiciousGrid">
+			
+		<nestedtreedatagrid:columns>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="ID" />
+			<nestedtreedatagrid:FlexDataGridColumn dataField="legalName" headerText="Legal Name"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line1" headerText="Address Line 1" />
+			<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.city.name" headerText="City" />
+			<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.state.name" headerText="State" />
+			<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.country.name" headerText="Country"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="numEmployees" headerText="Num Employees" textAlign="right" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="earningsPerShare" headerText="EPS" textAlign="right" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+			<nestedtreedatagrid:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price" textAlign="right" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+		</nestedtreedatagrid:columns>
+	</nestedtreedatagrid:FlexDataGrid>
+</mx:HBox>

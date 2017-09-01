@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.utils.UIUtils;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.HierarchicalCollectionView;
+			import mx.collections.HierarchicalData;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+		
+
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				
+			}
+			[Bindable()]
+			private var _selectedObjects:String;
+			[Bindable()]
+			private var _openObjects:String;
+
+			
+			protected function grid_changeHandler(event:FlexDataGridEvent):void
+			{
+				_selectedObjects="";
+				for each(var item:* in grid.getSelectedObjects())
+					_selectedObjects+= item.@id.toString()+","; 
+					
+				_openObjects="";
+				for each( item in grid.getOpenKeys())
+				_openObjects+= item+","; 
+			}
+
+
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				grid.setOpenKeys(["SW","AR"])
+				grid.setSelectedKeys(["BJ","TS"])
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		
+		<fx:XMLList  id="dpHierarchyXML">
+			<Region Region="Southwest" id="SW">
+				<Region Region="Arizona" Actual="68750" Estimate="70000" id="AR">
+					<Territory_Rep Territory_Rep="Barbara Jennings" 
+								   Actual="38865" Estimate="40000" id="BJ"/>
+					<Territory_Rep Territory_Rep="Dana Binn" 
+								   Actual="29885" Estimate="30000" id="DB"/>
+				</Region>
+				<Region Region="Central California" Actual="29134" Estimate="30000" id="CC">
+					<Territory_Rep Territory_Rep="Joe Smith" 
+								   Actual="29134" Estimate="30000" id="JS"/>
+				</Region>
+				<Region Region="Nevada" Actual="52888" Estimate="45000" id="NV">
+					<Territory_Rep Territory_Rep="Bethany Pittman" 
+								   Actual="52888" Estimate="45000" id="BP"/>
+				</Region>
+				<Region Region="Northern California" Actual="94303" Estimate="80000" id="NC">
+					<Territory_Rep Territory_Rep="Lauren Ipsum" 
+								   Actual="38805" Estimate="40000" id="LI"/>
+					<Territory_Rep Territory_Rep="T.R. Smith" 
+								   Actual="55498" Estimate="40000" id="TS"/>
+				</Region>
+				<Region Region="Southern California" Actual="89898" Estimate="90000" id="SC">
+					<Territory_Rep Territory_Rep="Alice Treu" 
+								   Actual="44985" Estimate="45000" id="AT"/>
+					<Territory_Rep Territory_Rep="Jane Grove" 
+								   Actual="44913" Estimate="45000" id="JG"/>
+				</Region>
+			</Region>  
+		</fx:XMLList>
+	</fx:Declarations>
+	<mx:Label text="Selected Objects:{_selectedObjects}"/>
+	<mx:Label text="Open Objects:{_openObjects}"/>
+	<s:Button label="Select BJ,TS Programatically" click="button1_clickHandler(event)"/>
+	<nestedtreedatagrid:FlexDataGrid  id="grid" width="100%"  enablePrint="true" height="100%"  change="grid_changeHandler(event)"
+									 enableDrillDown="true" enableDynamicLevels="true" enableSelectionBubble="true" enableTriStateCheckbox="true" 
+									 enableExport="true" enableCopy="true" enableSelectionCascade="true" selectedKeyField="@id"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 dataProvider="{new HierarchicalData(dpHierarchyXML)}">
+		     
+
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" >
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="@Region" headerText="Region" enableHierarchicalNestIndent="true"/>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="@id" headerText="ID"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="@Territory_Rep" headerText="Territory Rep"/>
+					
+					<nestedtreedatagrid:FlexDataGridColumn dataField="@Actual" headerText="Actual" 
+														   textAlign="right" headerAlign="center" footerLabel="Avg:" 
+														   footerOperation="average" footerAlign="center" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="@Estimate" headerText="Estimate" 
+														   textAlign="right" headerAlign="center" footerLabel="Avg:" 
+														   footerOperation="average" footerAlign="center" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+			</nestedtreedatagrid:columns>
+				
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

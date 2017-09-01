@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009"  creationComplete="vbox1_creationCompleteHandler(event)"
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*"
+		 
+		 >
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.billing.LineItem;
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.example.view.support.ActionMenu;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridDataCell;
+			import com.flexicious.nestedtreedatagrid.valueobjects.ComponentInfo;
+			import com.flexicious.nestedtreedatagrid.valueobjects.RowPositionInfo;
+			import com.flexicious.utils.UIUtils;
+			
+			import flash.utils.describeType;
+			import flash.utils.getQualifiedClassName;
+			
+			import flashx.textLayout.container.ScrollPolicy;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.containers.HBox;
+			import mx.controls.Alert;
+			import mx.controls.Image;
+			import mx.core.DragSource;
+			import mx.core.EventPriority;
+			import mx.core.IUIComponent;
+			import mx.core.UIComponent;
+			import mx.events.CloseEvent;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.DragManager;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+
+
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrgList(function(evt:ResultEvent,token:AsyncToken):void{grid.dataProvider=evt.result})
+			}
+			
+			
+			
+			       
+
+			//can we start dragging this cell?
+			private function isDraggable(cell:IFlexDataGridDataCell):Boolean{
+				return true;
+			}
+			//can we drop on this cell?
+			private function isDroppable(target:IFlexDataGridDataCell):Boolean{
+				//in here we only allow the cells to drop on the same level they belong to
+				//so for example, you can reparent a deal from an org, but you cannot
+				//drop a deal below an Invoice, because the hierarchy is 
+				//Org=>Deal=>Invoice
+				return target&&grid.dragColumn&&(grid.dragColumn.level==target.level);
+			}
+			//perform our action as a result of  drag drop.
+			private function onDragComplete(target:IFlexDataGridDataCell):void{
+				var dragItem:Object=grid.dragRowData; //the object that we began the drag on
+				var dropItem:Object=target.rowInfo.data; //the object that we dropped on
+				var dragCol:FlexDataGridColumn=grid.dragColumn; //the column that began the drag, which also has the handle to the nest level that we began the drag on
+				//generic prompt
+				UIUtils.showConfirm("Are you sure you wish to move Item : " + dragItem.id
+					+ " next to " + dropItem.id +"?",
+					function (comp:UIComponent,evt:CloseEvent):void{
+						if(evt.detail==Alert.YES){//callback to the confirmation proompt
+							var destArr:ArrayCollection=grid.dataProvider as ArrayCollection ; 
+							var srcArr:ArrayCollection=grid.dataProvider as ArrayCollection;
+							if(dragCol.level.nestDepth>1){
+								//other wise, we did nested drag drop, we need to identify which record in the 
+								//grid is the parent, to splice out the source and push it into the target
+								 destArr=dropItem.parent.children as ArrayCollection;
+								 srcArr=dragItem.parent.children as ArrayCollection;
+								dragItem.parent=dropItem.parent; //reset the parent, other wise bad things will happen
+							}else{
+								//if we dropped a top level item, we simply re arrange the grids' data provider
+							}
+							srcArr.removeItemAt(srcArr.getItemIndex( dragItem)); //drop it into target
+							destArr.addItemAt(dragItem,destArr.getItemIndex(dropItem)+1); //remove it from source
+							grid.rebuild();	//rebuild
+						}
+					},this
+				
+				);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<nestedtreedatagrid:FlexDataGrid dragAvailableFunction="isDraggable"  
+									 dropAcceptRejectFunction="isDroppable" 
+									 dragDropCompleteFunction="onDragComplete"
+		id="grid" width="100%"  enablePrint="true" height="100%"
+									 enablePreferencePersistence="true" enableDrillDown="true" 
+									 enableExport="true" enableCopy="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="nesteddata" 
+									 enableDrag="true"
+									 enableDrop="true"
+									 
+									 >
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel enableFilters="true" enablePaging="true" 
+														pageSize="20" childrenField="deals" enableFooters="true" selectedKeyField="id"
+														>
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  />
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" enableCellClickRowSelect="false" columnWidthMode="fitToContent" 
+														   selectable="true" dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" truncateToFit="true" enableCellClickRowSelect="false" 
+														   selectable="true" dataField="legalName" headerText="Legal Name" width="150" columnWidthMode="fixed"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="annualRevenue" headerText="Annual Revenue" columnWidthMode="fitToContent" 
+														   textAlign="right" headerAlign="center" footerLabel="Avg:" footerOperation="average" footerAlign="center" columnWidthModeFitToContentExcludeHeader="true"
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="numEmployees" headerText="Num Employees" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="earningsPerShare" headerText="EPS" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="lastStockPrice" headerText="Stock Price" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="invoices" enableFooters="true" selectedKeyField="id"
+																>
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="dealDescription" headerText="Deal Description"   
+																   footerLabel="Count:" footerOperation="count" footerAlign="center"
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+																   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="dealDate" headerText="Deal Date" labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+						</nestedtreedatagrid:columns>
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="lineItems" enableFooters="true" enablePaging="true" pageSize="3"
+																		selectedKeyField="id">
+								<nestedtreedatagrid:columns>
+									<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+									<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="id" headerText="Invoice Number" 
+																		   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																		   />
+									<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="invoiceAmount" headerText="Invoice Amount" textAlign="right" 
+																		   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																		   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																		   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="invoiceStatus.name" headerText="Invoice Status" />
+									
+									<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="invoiceDate" headerText="Invoice Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="dueDate" headerText="Due Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+								</nestedtreedatagrid:columns>
+								<nestedtreedatagrid:nextLevel>
+									<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" selectedKeyField="id">
+										<nestedtreedatagrid:columns>
+											<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+											<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="lineItemDescription" headerText="Line Item Description" 
+																				   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																				   />
+											<nestedtreedatagrid:FlexDataGridColumn sortable="false" dataField="lineItemAmount" headerText="Line Item Amount" textAlign="right" 
+																				   footerLabel="Total:" footerOperation="sum" footerAlign="right" 
+																				   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																				   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+											
+										</nestedtreedatagrid:columns>
+									</nestedtreedatagrid:FlexDataGridColumnLevel>
+								</nestedtreedatagrid:nextLevel>
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

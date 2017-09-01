@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009"  
+		 xmlns:s="library://ns.adobe.com/flex/spark" creationComplete="hbox1_creationCompleteHandler(event)"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:controls="com.flexicious.controls.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.valueobjects.RowPositionInfo;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			
+			private var questions:ArrayCollection=new ArrayCollection();
+			private function addQuestion(questionText:String):void{
+				var q:Object = new Object();
+				q.question=questionText;
+				q.answers = new ArrayCollection();
+				addAnswers(q);
+				questions.addItem(q);
+			}
+			
+			private function addAnswers(q:Object):void
+			{
+				q.answers.addItem(createAnswer('Very Satisfied'));
+				q.answers.addItem(createAnswer('Moderately Satisfied'));
+				q.answers.addItem(createAnswer('No Opinion/NA'));
+				q.answers.addItem(createAnswer('Moderately Dissatisfied'));
+				q.answers.addItem(createAnswer('Very Satisfied'));
+				var total:Number=UIUtils.sum(q.answers,"totalCount");
+				for each(var a:Object in q.answers){
+					a.totalPercent = (100*a.totalCount/total).toFixed(2);
+				}
+				q.freshmanCount = UIUtils.sum(q.answers,"freshmanCount");
+				q.sophomoreCount = UIUtils.sum(q.answers,"sophomoreCount");
+				q.juniorCount =  UIUtils.sum(q.answers,"juniorCount");
+				q.seniorCount = UIUtils.sum(q.answers,"seniorCount");
+				
+				q.totalCount = q.freshmanCount+q.sophomoreCount+q.juniorCount+q.seniorCount;
+				q.freshmanPercent = (100*q.freshmanCount/q.totalCount).toFixed(2);
+				q.sophomorePercent = (100*q.sophomoreCount/q.totalCount).toFixed(2);
+				q.juniorPercent = (100*q.juniorCount/q.totalCount).toFixed(2);
+				q.seniorPercent = (100*q.seniorCount/q.totalCount).toFixed(2);
+				q.totalPercent=100;
+			}
+			
+			private function createAnswer(answerOption:String):Object
+			{
+				var a:Object=new Object();
+				a.answerOption=answerOption
+				a.freshmanCount = FlexiciousMockGenerator.getRandom(100,400);
+				a.sophomoreCount = FlexiciousMockGenerator.getRandom(100,400);
+				a.juniorCount = FlexiciousMockGenerator.getRandom(100,400);
+				a.seniorCount = FlexiciousMockGenerator.getRandom(100,400);
+				
+				a.totalCount = a.freshmanCount+a.sophomoreCount+a.juniorCount+a.seniorCount;
+				a.freshmanPercent = (100*a.freshmanCount/a.totalCount).toFixed(2);
+				a.sophomorePercent = (100*a.sophomoreCount/a.totalCount).toFixed(2);
+				a.juniorPercent = (100*a.juniorCount/a.totalCount).toFixed(2);
+				a.seniorPercent = (100*a.seniorCount/a.totalCount).toFixed(2);
+				return a; 
+			}
+			
+			protected function hbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				addQuestion("Please rate your level of satisfaction with the sense of safety and security as experienced in your residential college/housing campus");
+				addQuestion("Please rate your level of satisfaction with the availability of public transportation to and from the University Campus");
+				addQuestion("Please rate your level of satisfaction with the quality of the Intramural sports and recreation programs");
+				addQuestion("Please rate your level of satisfaction with your sense of acceptance, belonging, and community");
+				grid.dataProvider=questions;
+				grid.validateNow();
+				grid.expandAll();
+			}
+			private function getRowSpan(cell:IFlexDataGridCell):int{
+				if(!rbnRowSpan.selected) return 1;
+				if(cell.level.nestDepth==1 //top level
+					&& cell.level.isItemOpen(cell.rowInfo.data)//item is open
+					&& cell.column
+					&& cell.column.dataField=="question" //its the first column
+					&& cell.rowInfo.isDataRow //its the data row, not the header or the footer row
+					&& !cell.rowInfo.isFillRow//since the filler is also considered a data row
+				)
+					return cell.rowInfo.data.answers.length+1;
+				
+				return 1;
+			}
+			
+			
+			
+			
+			private function getColSpan(cell:IFlexDataGridCell):int{
+				if(!rbnColSpan.selected) return 1;
+				if(cell.level.nestDepth==1 //top level
+					&& cell.column
+					&& cell.column.dataField=="question" //its the first column
+					&& cell.rowInfo.isDataRow //its the data row, not the header or the footer row
+					&& !cell.rowInfo.isFillRow//since the filler is also considered a data row
+				)
+					return grid.columns.length;
+				
+				return 1;
+			}
+			private function getColor(cell:IFlexDataGridCell):Object{
+				if(cell.level.nestDepth==1 //top level
+					&& cell.column
+					&& cell.column.dataField=="question" //its the first column
+					&& cell.rowInfo.isDataRow //its the data row, not the header or the footer row
+				)
+					return 0xF7F3F7;
+				
+				return null;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace nestedtreedatagrid "com.flexicious.nestedtreedatagrid.*";
+		@namespace controls "com.flexicious.controls.*";
+		.whiteText{
+			color:#FFFFFF;
+			fontWeight:"bold";
+		}
+	</fx:Style>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:HBox>
+		<mx:RadioButton id="rbnRowSpan" label="Use Row Span" selected="true" groupName="rowSpanColSpan" click="questionColumn.columnLockMode=FlexDataGridColumn.LOCK_MODE_LEFT;grid.reDraw()" />
+		<mx:RadioButton id="rbnColSpan" label="Use Column Span" groupName="rowSpanColSpan" click="questionColumn.columnLockMode=FlexDataGridColumn.LOCK_MODE_NONE;grid.reDraw()"/>
+		
+	</mx:HBox>
+	<nestedtreedatagrid:FlexDataGrid fontFamily="tahoma" fontSize="11" useRollOver="false" width="100%" height="100%" id="grid" enableDynamicLevels="true" rowSpanFunction="getRowSpan" colSpanFunction="getColSpan" enableDefaultDisclosureIcon="false"
+									 cellBackgroundColorFunction="getColor" verticalGridLines="false" horizontalGridLines="true"
+									 alternatingItemColors="[0xFFFFFF,0xE7F3FF]" 
+									 headerColors="[0x298EBD,0x298EBD]" 
+									 headerRollOverColors="[0x298EBD,0x298EBD]"
+									 columnGroupColors="[0x298EBD,0x298EBD]" 
+									 footerColors="[0x298EBD,0x298EBD]" 
+									 footerRollOverColors="[0x298EBD,0x298EBD]"
+									 headerStyleName="whiteText" footerStyleName="whiteText" columnGroupStyleName="whiteText"
+									 lockedSeperatorThickness="1"
+									 lockedSeperatorColor="0x6f6f6f"
+									 >
+		<nestedtreedatagrid:columnLevel>
+			<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="answers" enableFooters="true" >
+				<nestedtreedatagrid:groupedColumns>
+					<nestedtreedatagrid:FlexDataGridColumn columnTextColor="0x17365D" id="questionColumn" columnLockMode="left" width="200" headerText="Survey Question" dataField="question" wordWrap="true" enableExpandCollapseIcon="true" paddingLeft="20" expandCollapseIconTop="4" expandCollapseIconLeft="4"/>
+					<nestedtreedatagrid:FlexDataGridColumn width="150" headerText="Answer" dataField="answerOption"/>
+					<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Freshman">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="freshmanCount" headerText="Count" footerOperation="sum" footerOperationPrecision="0" textAlign="right"	headerAlign="right" footerAlign="right" paddingRight="5"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="freshmanPercent" headerText="Percent"  footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnGroup>
+					<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Sophomore">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="sophomoreCount" headerText="Count" footerOperation="sum" footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="sophomorePercent" headerText="Percent"  footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnGroup>
+					<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Junior">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="juniorCount" headerText="Count" footerOperation="sum" footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right"  paddingRight="5"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="juniorPercent" headerText="Percent"  footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnGroup>
+					<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Senior">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="seniorCount" headerText="Count" footerOperation="sum" footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="seniorPercent" headerText="Percent"  footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnGroup>
+					<nestedtreedatagrid:FlexDataGridColumnGroup headerText="Total">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="totalCount" headerText="Count" footerOperation="sum" footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="totalPercent" headerText="Percent"  footerOperationPrecision="0" textAlign="right" headerAlign="right" footerAlign="right" paddingRight="5"/>
+						</nestedtreedatagrid:columns>
+					</nestedtreedatagrid:FlexDataGridColumnGroup>
+				</nestedtreedatagrid:groupedColumns>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+</mx:VBox>

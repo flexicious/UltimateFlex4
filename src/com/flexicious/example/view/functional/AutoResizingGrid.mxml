@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)" xmlns:support="com.flexicious.example.view.support.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.organizations.Organization;
+			import com.flexicious.example.model.transactions.Deal;
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.example.view.support.DealInfo;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+			[Bindable()]
+			private var _org:Organization;
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrg(20800,function(evt:ResultEvent,token:AsyncToken):void{
+					_org=evt.result as Organization;
+					
+				})
+			}
+			private var _dealToDelete:Deal;
+			public function onDealDelete(deal:Deal):void
+			{
+				_dealToDelete=deal;
+				Alert.show("Are you sure you wish to delete this deal?","Confirm Delete", Alert.OK|Alert.CANCEL,this,onConfirmDelete)
+			}
+			private function onConfirmDelete(event:CloseEvent):void{
+				if(event.detail==Alert.OK && _dealToDelete){
+					_org.deals.removeItemAt(_org.deals.getItemIndex(_dealToDelete));
+				}
+				_dealToDelete=null;
+			}
+			private function onAddDealPopupClose(event:CloseEvent):void{
+				var pop:DealInfo=(event.target as DealInfo);
+				if(event.detail==Alert.OK){
+					_org.deals.addItem(pop.deal);
+				}
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:Panel width="100%" title="Organization Details - {_org.legalName}">
+		<mx:HBox width="100%">
+			<mx:Panel width="10%" height="50%" verticalGap="0" horizontalGap="0" title="Basic Information" 
+					  paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+				<mx:Form width="100%" verticalGap="0" horizontalGap="0" 
+						 paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+					<mx:FormItem label="Organization Name">
+						<mx:Label text="{_org.legalName}"/>
+					</mx:FormItem>	
+					<mx:FormItem label="Sales Contact">
+						<mx:Label text="{_org.salesContact.displayName}"/>
+					</mx:FormItem>	
+					<mx:FormItem label="Sales Contact Phone">
+						<mx:Label text="{_org.salesContact.telephone}"/>
+					</mx:FormItem>	
+				</mx:Form>
+			</mx:Panel>
+			<mx:Panel width="50%" verticalGap="0" horizontalGap="0" title="Financials" 
+					  paddingTop="0" height="50%"  paddingBottom="0" paddingLeft="0" paddingRight="0">
+				<mx:Form width="100%" verticalGap="0" horizontalGap="0" 
+						 paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+					<mx:FormItem label="Annual Revenue:">
+						<mx:Label text="{UIUtils.formatCurrency(_org.annualRevenue)}"/>
+					</mx:FormItem>	
+					<mx:FormItem label="EPS:">
+						<mx:Label text="{UIUtils.formatCurrency(_org.earningsPerShare)}"/>
+					</mx:FormItem>	
+					<mx:FormItem label="Last Stock Price:">
+						<mx:Label text="{UIUtils.formatCurrency(_org.lastStockPrice)}"/>
+					</mx:FormItem>	
+					<mx:FormItem label="Employees:">
+						<mx:Label text="{_org.numEmployees}"/>
+					</mx:FormItem>	
+				</mx:Form>
+			</mx:Panel>
+		</mx:HBox>
+		<nestedtreedatagrid:FlexDataGrid id="grid" width="100%"  enablePrint="true"  enableHeightAutoAdjust="true"
+											 enablePreferencePersistence="true" enableDrillDown="true" enableSelectionCascade="true"
+											 enableExport="true" enableCopy="true" dataProvider="{_org.deals}" 
+											 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+											 preferencePersistenceKey="nesteddata">
+				
+				<nestedtreedatagrid:columnLevel >
+					<nestedtreedatagrid:FlexDataGridColumnLevel enableFilters="true" childrenField="invoices" enableFooters="true" >
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealDescription" headerText="Deal Description" 
+																   footerLabel="Count:" footerOperation="count" footerAlign="center"
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+																   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																   editable="true" editorDataField="selectedDate"  dataField="dealDate" headerText="Deal Date" labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn headerText="Delete" width="30">
+								<nestedtreedatagrid:itemRenderer>
+									<fx:Component>
+										<mx:Image source="@Embed('/assets/images/delete.png')" click="parentDocument.onDealDelete(data)" 
+												  scaleContent="false" useHandCursor="true" buttonMode="true" mouseChildren="false"/>
+									</fx:Component>
+								</nestedtreedatagrid:itemRenderer>	
+							</nestedtreedatagrid:FlexDataGridColumn>
+
+							
+						</nestedtreedatagrid:columns>
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="lineItems" enableFooters="true" enablePaging="false" pageSize="3"
+																		selectedKeyField="id">
+								<nestedtreedatagrid:columns>
+									<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="id" headerText="Invoice Number" 
+																		   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																		   />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceAmount" headerText="Invoice Amount" textAlign="right" 
+																		   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																		   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceStatus.name" headerText="Invoice Status" />
+									
+									<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																		   editable="true" editorDataField="selectedDate"  dataField="invoiceDate" headerText="Invoice Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																		   editable="true" editorDataField="selectedDate"  dataField="dueDate" headerText="Due Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+								</nestedtreedatagrid:columns>
+								<nestedtreedatagrid:nextLevel>
+									<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" selectedKeyField="id">
+										<nestedtreedatagrid:columns>
+											<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemDescription" headerText="Line Item Description" 
+																				   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																				   />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemAmount" headerText="Line Item Amount" textAlign="right" 
+																				   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																				   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+											
+										</nestedtreedatagrid:columns>
+									</nestedtreedatagrid:FlexDataGridColumnLevel>
+								</nestedtreedatagrid:nextLevel>
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:columnLevel>
+			</nestedtreedatagrid:FlexDataGrid>
+		<mx:ControlBar>
+			<mx:Button label="Add Deal" click="var pop:DealInfo = new DealInfo();pop.organization=this._org;pop.addEventListener(CloseEvent.CLOSE,onAddDealPopupClose);UIUtils.addPopUp(pop,this)"/>
+		</mx:ControlBar>
+	</mx:Panel>
+</mx:VBox >

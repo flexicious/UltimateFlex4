@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:flxs="com.flexicious.nestedtreedatagrid.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.controls.Alert;
+			
+			[Embed('/assets/images/upIcon.png')]
+			private static var upIcon:Class;
+			[Embed('/assets/images/downIcon.png')]
+			private static var downIcon:Class;
+			
+			public function dynamicTooltipFunction(cell:IFlexDataGridCell):String{
+				return "This is a dynamic tooltip for " + cell.rowInfo.data.legalName;
+			}
+			public function dynamicIconFunction(cell:IFlexDataGridCell,state:String=''):*{
+				if(cell.rowInfo.isDataRow){
+					return cell.rowInfo.rowPositionInfo.rowIndex%2==0?upIcon:downIcon;
+				}
+				return null;
+			}
+			
+			
+			/* 
+			Use the following guidelines for icon support:
+			Set enableIcons=true. 
+			If it will be the same icon for each cell, just set the "icon" style property on the column. 
+			If it will be different icons based on some logic, you can either provide that via the iconField property, or specify an iconFunction. 
+			If the cell will contain just an icon and no text, then set hideText/hideHeaderText to true. 
+			If the header also needs an icon, use the headerIconUrl property. 
+			Specify (iconLeft or iconRight) and (iconTop or iconBottom). If not specified, icon will be placed to the right middle of the cell. 
+			If needed, Wire up the iconClick or iconMouseOver (delay)/iconMouseOut, and specify iconMouseOverDelay (default 250 msec). 
+			Set enableIconHandCursor if needed. 
+			Set the iconTooltip, iconTooltipFunction, iconTooltipRenderer (for custom interactive popovers) as needed. 
+			Set the showIconOnRowHover and showIconOnCellHover as needed (If you only wish to show the icon when the user hovers over the cell or the row. 
+		 	*/
+			
+			protected function grid_iconClickHandler(event:FlexDataGridEvent):void
+			{
+				Alert.show("You clicked on icon for column " + event.column.dataField + ", row : " + event.cell.rowInfo.rowPositionInfo.rowIndex)
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<flxs:FlexDataGrid width="100%" height="100%" id="grid" iconClick="grid_iconClickHandler(event)"
+										 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+										 enableFooters="true" enableFilters="true" >
+		<flxs:columnLevel >
+				<flxs:FlexDataGridColumnLevel selectedKeyField="id">
+					<flxs:columns>
+						<flxs:FlexDataGridCheckBoxColumn id="cbCol" />
+						<flxs:FlexDataGridColumn dataField="id" headerText="ID" filterControl="TextInput"/>
+						<flxs:FlexDataGridColumn dataField="legalName" headerText="Legal Name"/>
+						<flxs:FlexDataGridColumn dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" headerAlign="center" 
+											 	footerLabel="Avg:" footerOperation="average" 
+												footerAlign="center" footerOperationPrecision="2" 
+												footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+												labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+												enableIcon="true" icon="@Embed('/assets/images/info.gif')"
+												iconToolTip="This is a static tooltip" paddingRight="20" 
+												iconRight="5" iconHandCursor="true" filterControl="TextInput"
+												/>
+						<flxs:FlexDataGridColumn dataField="numEmployees" headerText="Num Employees" textAlign="right" 
+												 footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+										   		 footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+											   	 labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+												 enableIcon="true" icon="@Embed('/assets/images/info.gif')"
+												 iconToolTipFunction="dynamicTooltipFunction" paddingRight="20" 
+												 iconRight="5" iconHandCursor="true" showIconOnRowHover="true"
+												 filterControl="TextInput"
+												 />
+						<flxs:FlexDataGridColumn dataField="earningsPerShare" headerText="EPS" textAlign="right" footerLabel="Avg:" 
+												 footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+												 labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+												 enableIcon="true" iconHandCursor="true" showIconOnCellHover="true"
+												 icon="@Embed('/assets/images/search.png')"
+												 iconLeft="5" filterControl="TextInput"
+												 >
+							<flxs:iconTooltipRenderer>
+								<fx:Component>
+									
+									<mx:VBox alpha=".9" 
+											 backgroundColor="0xFFFF99" 
+											 borderColor="black"
+											 borderStyle="solid"
+											 width="270" height="200" 
+											 horizontalScrollPolicy="off" verticalScrollPolicy="off">
+										<fx:Script>
+											<![CDATA[
+												import com.flexicious.nestedtreedatagrid.FlexDataGrid;
+												public var grid:FlexDataGrid;
+											]]>
+										</fx:Script>	
+										<mx:Text id="raLbl" width="265" />
+										<mx:Label text="This is a custom interactive tooltip" fontWeight="bold"/>
+										<mx:Text  width="100%" text="Note that you can reference the row data like this : {data.legalName}. You can put interactive content within this popup, for example , you can click the Edit Reason link below (to potentially launch another window). The popup will stay in place unless move the mouse out of the popup, or click the close popup button below. "/>
+										<mx:HBox horizontalAlign="right" width="270">
+											<mx:LinkButton id="editBtn" label="Edit Reason" textDecoration="underline" textAlign="center" />
+											<mx:LinkButton id="closeBtn" label="Close popup" textDecoration="underline" textAlign="center" click="grid.hideTooltip()" />
+											
+										</mx:HBox>	
+									</mx:VBox>
+											 
+								</fx:Component>
+							</flxs:iconTooltipRenderer>
+						</flxs:FlexDataGridColumn>
+						
+						
+						
+
+						<flxs:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price" textAlign="right" footerLabel="Avg:" 
+												 footerOperation="average" footerOperationPrecision="2" 
+												 footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+												 labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+												 enableIcon="true" iconFunction="dynamicIconFunction"
+												 paddingRight="20" 
+												 iconRight="5" iconHandCursor="true"  
+												 />
+						<flxs:FlexDataGridColumn hideText="true" 
+												 enableIcon="true" 
+												 icon="@Embed('/assets/images/info.gif')"
+												 iconToolTip="This column shows only an icon, no text." 
+												 iconHandCursor="true"  
+												 columnWidthMode="fixed"
+												 width="30"
+												 iconLeft="10"
+												 />
+					</flxs:columns>
+				</flxs:FlexDataGridColumnLevel>
+				
+		</flxs:columnLevel>
+		
+	</flxs:FlexDataGrid>
+	
+</mx:VBox>

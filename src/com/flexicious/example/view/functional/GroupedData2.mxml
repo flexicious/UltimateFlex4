@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.billing.Invoice;
+			import com.flexicious.example.model.common.SystemConstants;
+			import com.flexicious.example.model.organizations.Organization;
+			import com.flexicious.example.model.transactions.Deal;
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+			import mx.rpc.xml.SimpleXMLEncoder;
+			import mx.rpc.xml.SimpleXMLDecoder;
+			
+			
+			private function _hack(arr:ArrayCollection):void{
+				var i:int=0;
+				for (i=0;i<arr.length;i++){
+					//trace(arr[i]);
+					if(arr[i].legalName!='3M Co'){
+						arr.removeItemAt(i);
+					}
+				}
+				
+			}
+			
+			private function _objectToXML(obj:Object):XML {
+				var qName:QName = new QName("root");
+				var xmlDocument:XMLDocument = new XMLDocument();
+				var simpleXMLEncoder:SimpleXMLEncoder = new SimpleXMLEncoder(xmlDocument);
+				var xmlNode:XMLNode = simpleXMLEncoder.encodeValue(obj, qName, xmlDocument);
+				var xml:XML = new XML(xmlDocument.toString());
+				return xml;
+			}
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrgList(function(evt:ResultEvent,token:AsyncToken):void{
+					
+					grid.dataProvider=evt.result;
+					//trace(JSON.encode(evt.result));
+					//var arr:ArrayCollection =evt.result as ArrayCollection ;
+					//_hack(arr);
+					//grid.dataProvider=arr;
+					
+					trace(ObjectUtil.toString(grid.dataProvider.source[0]));
+					
+					//trace(_objectToXML(grid.dataProvider.source[0]));
+					//trace(JSON.encode(grid.dataProvider.source[0])); will faile
+					
+					
+				})
+			}
+			private function checkCellDisabled(cell:IFlexDataGridCell):Boolean{
+				return !(cell.rowInfo.data is Invoice);
+			}
+			private function returnFalse(cell:IFlexDataGridCell,data:*):Boolean{
+				return false;
+			}
+			private function getInvoiceAmount(data:Object,col:FlexDataGridColumn):String{
+				var val:Number=0;
+				if(data is Invoice)
+					val=(data as Invoice).invoiceAmount;
+				else if(data is Deal)
+					val=(data as Deal).dealAmount;
+				else if(data is Organization)
+					val= (data as Organization).relationshipAmount;
+				
+				return UIUtils.formatCurrency(val);
+			}
+			protected function amountSortCompareFunction(obj1:Object, obj2:Object):int{
+				if(obj1 is Organization && obj2 is Organization){
+					return ObjectUtil.numericCompare(obj1.relationshipAmount,obj2.relationshipAmount);
+				}
+				else if(obj1 is Deal && obj2 is Deal){
+					return ObjectUtil.numericCompare(obj1.dealAmount,obj2.dealAmount);
+				}
+				else if(obj1 is Invoice && obj2 is Invoice){
+					return ObjectUtil.numericCompare(obj1.invoiceAmount,obj2.invoiceAmount);
+				}
+				return 0;
+				
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true" horizontalGridLines="true"
+									 enablePreferencePersistence="true" enableFilters="true"
+									 enableExport="true" enableCopy="true"  enableEagerDraw="true" showSpinnerOnFilterPageSort="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="groupedData2">
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel  enableFilters="true" enablePaging="true" pageSize="20" childrenField="deals" selectedKeyField="id"
+														 reusePreviousLevelColumns="true" pagerDrawTopBorder="true" rowSelectableFunction="returnFalse">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  cellDisabledFunction="checkCellDisabled" />
+					<nestedtreedatagrid:FlexDataGridColumn enableHierarchicalNestIndent="true" dataField="name" headerText="Name"  columnLockMode="left" width="150"
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceAmount" headerText="Amount" textAlign="right" 
+														   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="getInvoiceAmount" sortCompareFunction="amountSortCompareFunction"/>
+					
+					<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceNumber" headerText="Invoice Number" 
+														   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+														   filterControl="TextInput" filterOperation="Contains"
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceStatus.name" headerText="Invoice Status" filterControl="MultiSelectComboBox"
+														   filterComboBoxDataProvider="{new ArrayCollection(SystemConstants.invoiceStatuses)}" 
+														   filterComboBoxDataField="code" filterComboBoxLabelField="name"/>
+					
+					<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+														   dataField="invoiceDate" headerText="Invoice Date" filterControl="DateComboBox" 
+														   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+														   dataField="dueDate" headerText="Due Date" filterControl="DateComboBox"
+														   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="invoices" selectedKeyField="id" reusePreviousLevelColumns="true" rowSelectableFunction="returnFalse">
+						
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" enablePaging="true" pageSize="5"
+																		selectedKeyField="id" reusePreviousLevelColumns="true">
+								
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

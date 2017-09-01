@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.billing.Invoice;
+			import com.flexicious.example.model.common.SystemConstants;
+			import com.flexicious.example.model.organizations.Organization;
+			import com.flexicious.example.model.transactions.Deal;
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.grids.events.PrintExportDataRequestEvent;
+			import com.flexicious.grids.filters.Filter;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridFooterCell;
+			import com.flexicious.nestedtreedatagrid.events.ExtendedFilterPageSortChangeEvent;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			private var _footerData:Dictionary=new Dictionary(true);
+			
+private function getFooterLabel(col:FlexDataGridColumn, cell:FlexDataGridFooterCell):String{
+				
+				if(_footerData[cell.rowInfo.data]){
+					if(cell.column.dataField=="invoiceAmount" || cell.column.dataField=="lineItemAmount" ||cell.column.dataField=="dealAmount" )
+						return "Total: " + UIUtils.formatCurrency(_footerData[cell.rowInfo.data].total);
+					else
+						return "Count: " + _footerData[cell.rowInfo.data].count;
+				}	
+				return "";
+			}
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().setDelay(1);
+				
+				var f:Filter=new Filter();
+				f.pageIndex=0;
+				f.pageSize=grid.pageSize;
+				BusinessService.getInstance().getPagedOrganizationList(f,
+					function(evt:ResultEvent,token:AsyncToken):void
+					{
+						grid.dataProvider=evt.result.collection;
+						grid.totalRecords=evt.result.totalRecords;
+					}
+				);
+			}
+			
+
+			protected function flexdatagridcolumnlevel1_itemLoadHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means we were requested to load all the details for a specific organization.
+				var org:Organization=event.filter.parentObject as Organization;
+				org=org.clone() as Organization;
+				BusinessService.getInstance().getDealsForOrganization(org.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						_footerData[event.filter.parentObject]=evt.result.summaryData;
+						grid.setChildData(event.filter.parentObject,evt.result.collection,event.filter.level.parentLevel,evt.result.totalRecords)
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel2_itemLoadHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means we were requested to load all the invoices for a specific deal.
+				var deal:Deal=event.filter.parentObject as Deal;
+				BusinessService.getInstance().getInvoicesForDeal(deal.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						_footerData[event.filter.parentObject]=evt.result.summaryData;
+						grid.setChildData(event.filter.parentObject,new ArrayCollection(evt.result.collection.source.slice()),
+							event.filter.level.parentLevel ,evt.result.totalRecords)
+						
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel3_itemLoadHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means we were requested to load all the line items for a specific invoice.
+				var inv:Invoice=event.filter.parentObject as Invoice;
+				BusinessService.getInstance().getLineItemsForInvoice(inv.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						_footerData[event.filter.parentObject]=evt.result.summaryData;
+						grid.setChildData(event.filter.parentObject,new ArrayCollection(evt.result.collection.source.slice()),event.filter.level.parentLevel,evt.result.totalRecords)
+						
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel1_filterPageSortChangeHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means that we paged, sorted or filtered the list of top level organization.
+				BusinessService.getInstance().getPagedOrganizationList(event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void
+					{
+						grid.dataProvider=evt.result.collection;
+						grid.totalRecords=evt.result.totalRecords;
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel2_filterPageSortChangeHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means that we paged, sorted or filtered the list of deals for an organization.
+				var org:Organization=event.filter.parentObject as Organization;
+				BusinessService.getInstance().getDealsForOrganization(org.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						grid.setChildData(event.filter.parentObject,evt.result.collection,event.filter.level.parentLevel,evt.result.totalRecords)
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel3_filterPageSortChangeHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means that we paged, sorted or filtered the list of invoices for a deal.
+				var deal:Deal=event.filter.parentObject as Deal;
+				BusinessService.getInstance().getInvoicesForDeal(deal.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						grid.setChildData(event.filter.parentObject,new ArrayCollection(evt.result.collection.source.slice()),
+							event.filter.level.parentLevel ,evt.result.totalRecords)
+					}
+				);
+			}
+			protected function flexdatagridcolumnlevel4_filterPageSortChangeHandler(event:ExtendedFilterPageSortChangeEvent):void
+			{
+				//this means that we paged, sorted or filtered the list of line items for an invoicef.
+				var inv:Invoice=event.filter.parentObject as Invoice;
+				BusinessService.getInstance().getLineItemsForInvoice(inv.id,event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void{
+						grid.setChildData(event.filter.parentObject,new ArrayCollection(evt.result.collection.source.slice()),event.filter.level.parentLevel,evt.result.totalRecords)
+					}
+				);
+			}
+
+			
+
+
+			protected function grid_printExportDataRequestHandler(event:PrintExportDataRequestEvent):void
+			{
+				//this means that we requested either all rows or a specific subset of rows....
+				BusinessService.getInstance().getPagedOrganizationList(event.filter,
+					function(evt:ResultEvent,token:AsyncToken):void
+					{
+						grid.printExportData=evt.result.collection;
+					}
+				);
+			}
+
+	]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true" 
+									 enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="fullyLazyLoaded"
+									 printExportDataRequest="grid_printExportDataRequestHandler(event)"
+									 showSpinnerOnFilterPageSort="true"
+									 enableSelectionCascade="true"
+									 enableSelectionBubble="true"
+									 enableSelectionExclusion="true"
+									 enableTriStateCheckbox="true"
+									 enableEagerDraw="true"
+									 >
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel enableFilters="true" enablePaging="true" pageSize="10" 
+														childrenField="deals" enableFooters="true" selectedKeyField="id"
+														itemLoadMode="server" itemLoad="flexdatagridcolumnlevel1_itemLoadHandler(event)"
+														filterPageSortChange="flexdatagridcolumnlevel1_filterPageSortChangeHandler(event)"
+														filterPageSortMode="server">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  />
+					<nestedtreedatagrid:FlexDataGridColumn enableCellClickRowSelect="false" columnWidthMode="fitToContent" 
+														   selectable="true" dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn truncateToFit="true" enableCellClickRowSelect="false" 
+														   selectable="true" dataField="legalName" headerText="Legal Name" width="150" columnWidthMode="fixed"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" 
+														   filterComboBoxDataProvider="{new ArrayCollection(SystemConstants.cities)}" 
+														   filterComboBoxDataField="code" filterComboBoxLabelField="name" 
+														   filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" 
+														   filterComboBoxDataProvider="{new ArrayCollection(SystemConstants.cities)}" 
+														   filterComboBoxDataField="code" filterComboBoxLabelField="name" 
+														   filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="annualRevenue" headerText="Annual Revenue" columnWidthMode="fitToContent" 
+														   textAlign="right" headerAlign="center" footerLabel="Avg:" footerOperation="average" footerAlign="center" columnWidthModeFitToContentExcludeHeader="true"
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="numEmployees" headerText="Num Employees" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="earningsPerShare" headerText="EPS" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price" columnWidthMode="fitToContent" columnWidthModeFitToContentExcludeHeader="true"
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel  childrenField="invoices" enableFooters="true" selectedKeyField="id" itemLoadMode="server" 
+																itemLoad="flexdatagridcolumnlevel2_itemLoadHandler(event)"
+																enablePaging="true" pageSize="3" filterPageSortMode="server"
+																filterPageSortChange="flexdatagridcolumnlevel2_filterPageSortChangeHandler(event)">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealDescription" headerText="Deal Description" 
+																   footerAlign="center" footerLabelFunction2="getFooterLabel"
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+																   footerAlign="right" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"
+																   footerLabelFunction2="getFooterLabel"/>
+							<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																   editable="true" editorDataField="selectedDate"  dataField="dealDate" headerText="Deal Date" labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+						</nestedtreedatagrid:columns>
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel  childrenField="lineItems" enableFooters="true" enablePaging="true" pageSize="3"
+																		selectedKeyField="id" itemLoadMode="server" 
+																		itemLoad="flexdatagridcolumnlevel3_itemLoadHandler(event)"
+																		filterPageSortMode="server" 
+																		filterPageSortChange="flexdatagridcolumnlevel3_filterPageSortChangeHandler(event)"
+																		>
+								<nestedtreedatagrid:columns>
+									<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="id" headerText="Invoice Number" 
+																		   footerLabelFunction2="getFooterLabel" footerAlign="center" 
+																		   />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceAmount" headerText="Invoice Amount" textAlign="right" 
+																		   footerAlign="right"
+																		   footerLabelFunction2="getFooterLabel" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceStatus.name" headerText="Invoice Status" />
+									
+									<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																		   editable="true" editorDataField="selectedDate"  
+																		   dataField="invoiceDate" headerText="Invoice Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+																		   editable="true" editorDataField="selectedDate"  
+																		   dataField="dueDate" headerText="Due Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+								</nestedtreedatagrid:columns>
+								<nestedtreedatagrid:nextLevel>
+									<nestedtreedatagrid:FlexDataGridColumnLevel  enableFooters="true" selectedKeyField="id" enablePaging="true" pageSize="3"
+																				filterPageSortMode="server" 
+																				filterPageSortChange="flexdatagridcolumnlevel4_filterPageSortChangeHandler(event)">
+										<nestedtreedatagrid:columns>
+											<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemDescription" headerText="Line Item Description" 
+																				   footerLabelFunction2="getFooterLabel" footerAlign="center" 
+																				   />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemAmount" headerText="Line Item Amount" textAlign="right" 
+																				   footerLabelFunction2="getFooterLabel" footerAlign="right"
+																				   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+											
+										</nestedtreedatagrid:columns>
+									</nestedtreedatagrid:FlexDataGridColumnLevel>
+								</nestedtreedatagrid:nextLevel>
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

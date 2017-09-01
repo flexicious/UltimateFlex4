@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridPrintEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.utils.ExtendedUIUtils;
+			import com.flexicious.utils.UIUtils;
+			
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+			
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrgList(function(evt:ResultEvent,token:AsyncToken):void{grid.dataProvider=evt.result})
+			}
+			
+			private function cellCustomDrawFunction(cell:IFlexDataGridCell):Boolean{
+				if(cell.rowInfo.isFillRow)return false; //we do not want to style the fill row (this is the row that fills any visible white space)
+				var colors:* = cell.getBackgroundColors();
+				if(colors is Array){
+					//just draw a rounded rect with a gradient
+					var mat:Matrix=new Matrix();
+					mat.createGradientBox(cell.width-0,cell.height-0,(-90)*Math.PI/180);
+					cell.graphics.lineStyle(1, cell.verticalGridLineColor);
+					cell.graphics.beginGradientFill(GradientType.LINEAR,colors,[100, 100],[0x00, 0xFF],mat);
+					cell.graphics.drawRoundRect(1, 1, cell.width-2, cell.height-2, 20, 20);
+					cell.graphics.endFill();
+				}
+				else{
+					//simply draw a rounded rect
+					cell.graphics.beginFill(colors);
+					cell.graphics.lineStyle(1, cell.verticalGridLineColor);
+					cell.graphics.drawRoundRect(1, 1, cell.width-2, cell.height-2, 20, 20);
+					cell.graphics.endFill();
+				}
+				return false;
+			}
+			
+			
+
+			protected function grid_printHandler(event:FlexDataGridPrintEvent):void
+			{
+				var stylesToTransfer:Array=["textAlign"
+					,"footerVerticalGridLines","pagerVerticalGridLines","headerVerticalGridLines","filterVerticalGridLines",
+					,"footerHorizontalGridLines","pagerHorizontalGridLines","headerHorizontalGridLines","filterHorizontalGridLines",
+					"verticalGridLines","horizontalGridLines" ]
+					
+				for each(var style:String in stylesToTransfer){
+					event.printGrid.setStyle(style,event.grid.getStyle(style))
+					event.printGrid.columnLevel.setStyle(style,event.grid.columnLevel.getStyle(style))
+				}
+				
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true" textAlign="center" headerHorizontalGridLines="false"
+									 footerVerticalGridLines="false" pagerVerticalGridLines="false" headerVerticalGridLines="false"
+									 filterVerticalGridLines="false"  verticalGridLines="false" horizontalGridLines="false" 
+									 enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true" beforePrint="grid_printHandler(event)"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="programaticCellPainting">
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel nestIndent="10" initialSortField="legalName" initialSortAscending="true"
+				enableFilters="true" enablePaging="true" pageSize="20" childrenField="deals" enableFooters="true" selectedKeyField="id"
+				cellCustomBackgroundDrawFunction="cellCustomDrawFunction" filterHorizontalGridLines="false" pagerHorizontalGridLines="false"
+				footerHorizontalGridLines="false" headerHorizontalGridLines="false">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  />
+					<nestedtreedatagrid:FlexDataGridColumn enableCellClickRowSelect="false" columnWidthMode="fixed" width="75" 
+														   selectable="true" dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn truncateToFit="true"  enableCellClickRowSelect="false" columnWidthMode="fitToContent"
+														   selectable="true" dataField="legalName" headerText="Legal Name"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="annualRevenue" headerText="Annual Revenue" columnWidthMode="fitToContent" 
+														   textAlign="right" headerAlign="center" footerLabel="Avg:" footerOperation="average" footerAlign="center" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="numEmployees" headerText="Num Employees" columnWidthMode="fitToContent" 
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="earningsPerShare" headerText="EPS" columnWidthMode="fitToContent" 
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lastStockPrice" headerText="Stock Price" columnWidthMode="fitToContent" 
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel nestIndent="10" childrenField="invoices" enableFooters="true" selectedKeyField="id" cellCustomBackgroundDrawFunction="cellCustomDrawFunction" >
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealDescription" headerText="Deal Description" 
+																   footerLabel="Count:" footerOperation="count" footerAlign="center"
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+																   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn  dataField="dealDate" headerText="Deal Date" labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+						</nestedtreedatagrid:columns>
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel nestIndent="10" childrenField="lineItems" enableFooters="true" enablePaging="true" pageSize="5" cellCustomBackgroundDrawFunction="cellCustomDrawFunction" 
+																		selectedKeyField="id">
+								<nestedtreedatagrid:columns>
+									<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="id" headerText="Invoice Number" 
+																		   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																		   />
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceAmount" headerText="Invoice Amount" textAlign="right" 
+																		   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																		   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="invoiceStatus.name" headerText="Invoice Status" />
+									
+									<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceDate" headerText="Invoice Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+									<nestedtreedatagrid:FlexDataGridColumn dataField="dueDate" headerText="Due Date" 
+																		   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+								</nestedtreedatagrid:columns>
+								<nestedtreedatagrid:nextLevel>
+									<nestedtreedatagrid:FlexDataGridColumnLevel nestIndent="10" enableFooters="true" selectedKeyField="id" cellCustomBackgroundDrawFunction="cellCustomDrawFunction" >
+										<nestedtreedatagrid:columns>
+											<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemDescription" headerText="Line Item Description" 
+																				   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																				   />
+											<nestedtreedatagrid:FlexDataGridColumn editable="true" dataField="lineItemAmount" headerText="Line Item Amount" textAlign="right" 
+																				   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																				   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+											
+										</nestedtreedatagrid:columns>
+									</nestedtreedatagrid:FlexDataGridColumnLevel>
+								</nestedtreedatagrid:nextLevel>
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

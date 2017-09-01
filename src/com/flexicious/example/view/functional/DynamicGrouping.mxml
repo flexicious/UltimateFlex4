@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*"
+		 creationComplete="hbox1_creationCompleteHandler(event)" xmlns:controls="com.flexicious.controls.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.utils.UIUtils;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			[Bindable()]
+			private var _dataProvider:Object;
+			private var _flat:Object;
+			
+			protected function hbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getAllLineItems(function(evt:ResultEvent,token:AsyncToken):
+					void{_flat=evt.result;groupBy("invoice.deal.customer.legalName")})
+			}
+			
+			//function that takes a flat collection and groups it on basis of the provided group field.
+			private function groupBy(prop:String):void
+			{
+				var buckets:Dictionary = new Dictionary();
+				var key:Object;
+				var result:ArrayCollection = new ArrayCollection();
+				//iterate through the flat list and create a hierarchy
+				for each(var item:Object in _flat){
+					key = UIUtils.resolveExpression(item,prop); //the parent
+					if(!buckets[key]){
+						buckets[key] = new ArrayCollection();//the children
+					}
+					buckets[key].addItem(item); //add to the parents child list
+				}
+				for (key  in buckets){
+					result.addItem({name:key,children:buckets[key]}); //create the final structure
+				}
+				_dataProvider=result; //this will refresh the grid...
+			}
+			
+			private function getFiltered(val:Array):ArrayCollection{
+				//get only columns that we can group by...
+				var coll:ArrayCollection = new ArrayCollection(val);
+				coll.filterFunction=function (item:Object):Boolean{
+					return item.dataField.indexOf(".")>0;
+				}
+				coll.refresh();
+				return coll;
+			}
+		]]>
+	</fx:Script>
+	<mx:VBox width="100%" height="100%" >
+		<s:Label text="Loading {_dataProvider.length} records."/>
+		<mx:HBox>
+			<controls:ComboBox id="groupingField" dataProvider="{getFiltered(grid.columns)}" dataField="dataField" labelField="headerText"
+							   />
+			<mx:Button label="Group" click="groupBy(groupingField.selectedValue.toString())" />
+		</mx:HBox>
+		<mx:HBox width="100%"  height="100%" >
+			<nestedtreedatagrid:FlexDataGrid horizontalScrollPolicy="on" id="grid" width="650" height="100%"  dataProvider="{_dataProvider}"
+											enableDynamicLevels="true" >
+				<nestedtreedatagrid:columnLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="children" nestIndent="25">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="name" headerText="Name" columnLockMode="left" />
+							
+							<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="1 ID" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="lineItemDescription" headerText="2 Line Item Description" width="200" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="lineItemAmount" headerText="3 Line Item Amount" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.invoiceNumber" headerText="4 Invoice Number" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.invoiceAmount" headerText="5 Invoice Amount" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.invoiceStatus.name" headerText="6 Invoice Status" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.dealDescription" headerText="7 Deal" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.invoiceDate" headerText="8 Invoice Date" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.dueDate" headerText="9 Due Date" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.dealDescription" headerText="10 Deal" width="200"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.dealStatus.name" headerText="11 Deal Status" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.legalName" headerText="12 Customer" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.headquarterAddress.line1" headerText="13 Address Line 1" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.headquarterAddress.line2" headerText="14 Address Line 2"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.headquarterAddress.city.name" headerText="15 City" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.headquarterAddress.state.name" headerText="16 State" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.headquarterAddress.country.name" headerText="17 Country"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.annualRevenue" headerText="18 Annual Revenue" textAlign="right" headerAlign="center" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.numEmployees" headerText="19 Num Employees" textAlign="right" />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoice.deal.customer.earningsPerShare" headerText="20 EPS" textAlign="right" />
+						</nestedtreedatagrid:columns>
+						
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+					
+				</nestedtreedatagrid:columnLevel>
+			</nestedtreedatagrid:FlexDataGrid>
+		</mx:HBox>
+	</mx:VBox>
+</mx:HBox>

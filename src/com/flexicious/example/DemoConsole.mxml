@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%"
+		 creationComplete="vbox1_creationCompleteHandler(event)" verticalScrollPolicy="off" 
+		 xmlns:functional="com.flexicious.example.view.functional.*" xmlns:code="http://code.google.com/p/flex-iframe/">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.view.functional.*;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.binding.utils.BindingUtils;
+			import mx.collections.ArrayCollection;
+			import mx.collections.HierarchicalCollectionView;
+			import mx.collections.XMLListCollection;
+			import mx.controls.Image;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			
+
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				FlexiciousMockGenerator.instance().addEventListener("progress",onProgress);
+				FlexiciousMockGenerator.instance().init();
+				/* onLoadComplete(); */
+			}
+			private function onProgress(event:Event):void
+			{
+				var progressint:int=FlexiciousMockGenerator.instance().progress;
+				progress.setProgress(progressint,100);
+				if(progressint==100){
+					onLoadComplete();
+				}
+			}
+			protected function onLoadComplete():void
+			{
+				loaded=true;
+				
+				var queryString:String = ExternalInterface.call("window.location.search.substring", 1);
+				if(queryString.indexOf("example=")>=0){
+					
+					var exampleIndex:String="0";
+					var params:Array = queryString.split('&');
+					for each(var qs:String in params){
+						if(qs.indexOf("example")>=0){
+							exampleIndex = qs.split("=")[1];
+						}
+					}
+					
+					hasQueryString=true;
+					boxSingleExample.removeAllChildren();
+					var uic:UIComponent=examples[parseInt(exampleIndex)].newInstance();
+					uic.percentHeight=100;
+					uic.percentHeight=100;
+					boxSingleExample.addChild(uic);
+				}
+				else{
+					intro.source= _docroot+"Intro.htm";
+					tree.selectedIndex=0
+					tree.validateNow();
+					tree1_clickHandler(null); 
+				}
+			}
+			private var examples:Array=[
+				
+				new ClassFactory(SimpleGrid),
+				new ClassFactory(NestedData),
+				new ClassFactory(PartialLazyLoaded),
+				new ClassFactory(FullyLazyLoaded),
+				new ClassFactory(GroupedData),
+				new ClassFactory(GroupedData2),
+				new ClassFactory(OutlookGroupedData),
+				new ClassFactory(LevelRenderers),
+				new ClassFactory(LevelRenderers2),
+				new ClassFactory(ProgramaticCellFormatting),
+				new ClassFactory(ProgamaticCellPainting),
+				new ClassFactory(ItemRenderers),
+				new ClassFactory(ProgramaticCellNavigation),
+				new ClassFactory(EditableCells),
+				new ClassFactory(DynamicColumns),			
+				new ClassFactory(LargeDataset),
+				new ClassFactory(ToolbarActions),
+				new ClassFactory(NestedToolbarActions),
+				new ClassFactory(XmlData),
+				new ClassFactory(XmlGroupedData),
+				new ClassFactory(HierarchicalDataGrid),
+				new ClassFactory(AutoResizingGrid),
+				new ClassFactory(SelectionModes),
+				new ClassFactory(ColumnLockModes),
+				new ClassFactory(ShowOnHoverGrid),
+				new ClassFactory(DragDropGrid),
+				new ClassFactory(SpinnerExample),
+				new ClassFactory(CustomReportExample),
+				new ClassFactory(StylesDemo),
+				new ClassFactory(LargeDynamicGrid),
+				new ClassFactory(DynamicLevels),
+				new ClassFactory(IconColumns),
+				new ClassFactory(ErrorHandling),
+				new ClassFactory(DynamicGrouping),
+				new ClassFactory(NestedUI),
+				new ClassFactory(VirtualScroll),
+				new ClassFactory(SelectionUI1),
+				new ClassFactory(SelectionUI2),
+				new ClassFactory(ExternalFilter),
+				new ClassFactory(ChangeTrackingAPI),
+				new ClassFactory(RowSpanColSpan),
+				new ClassFactory(AdvancedServerGrid),
+				new ClassFactory(TraderView),
+				new ClassFactory(SelectionOptions)
+				];
+			
+			private var _siteRoot:String= "http://www.flexicious.com/Home/FlexiciousUltimate/"
+			private var _webroot:String="http://www.flexicious.com/resources/Ultimate/";
+			private var _docroot:String=_webroot + "Docs/";
+			private var _demoroot:String=_webroot + "srcview/source/com/flexicious/example/view/functional/";
+			
+			
+			protected function tree1_clickHandler(event:MouseEvent):void
+			{
+				tbMain.selectedIndex=1;
+				tbMain.validateNow();
+				demoBox.removeAllChildren();
+				demoBox.validateNow();
+				
+				if(tree.selectedIndex>=0){
+					var uic:UIComponent=examples[tree.selectedIndex].newInstance();
+					uic.percentHeight=100;
+						
+					uic.percentHeight=100;
+					demoBox.addChild(uic);
+					
+					documentationBox.source=(_docroot+uic.className + ".htm?rand=" + Math.random().toString());
+					sourceBox.source=(_demoroot+uic.className + ".mxml.html?rand=" + Math.random().toString());
+					screenshot.source = _siteRoot+"?path="+uic.className+"&rand=" + Math.random().toString()
+				}
+			}
+			[Bindable()]
+			private var xml:XMLListCollection=new XMLListCollection(new XMLList(new XML(
+							<folder label="Functional Examples">
+								<item label="Simple" />
+								<item label="Nested Data" />
+								<item label="Nested Data - Partial Lazy Loaded" />
+								<item label="Nested Data - Fully Lazy Loaded" />
+								<item label="Grouped Data" />
+								<item label="Grouped Data-2" />
+								<item label="Grouped Data- Outlook Style" />
+								<item label="Level Item Renderers" />
+								<item label="Level Item Renderers - 2" />
+								<item label="Programatic Cell Formatting" />
+								<item label="Fully customized Grid Painting" />
+								<item label="Custom Item Renderers" />
+								<item label="Programatic Cell Navigation" />
+								<item label="Editable Cells" />
+								<item label="Dynamic Columns" />
+								<item label="Large Dataset" />
+								<item label="Toolbar Actions" />
+								<item label="Toolbar Actions - Nested Data" />
+								<item label="Xml Data" />
+								<item label="Xml Grouped Data" />
+								<item label="Hierarchical Collection View" />
+								<item label="Auto Resizing Grid" />
+								<item label="Selection Mode" />
+								<item label="Column Lock Modes" />
+								<item label="Hover Over Menu" />
+								<item label="Drag Drop Grid" />
+								<item label="Custom Loading Spinner" />
+								<item label="Custom Print Example" />
+								<item label="Styles Demo" />
+								<item label="Large Dynamic Grid" />
+								<item label="Dynamic Levels" />
+								<item label="Icon Columns" />
+								<item label="Error Handling" />
+								<item label="Dynamic Grouping" />
+								<item label="Nested UI" />
+								<item label="Virtual Scroll" />
+								<item label="Disclosure Icon - Nested UI" />
+								<item label="Disclosure Icon - Grouped UI" />
+								<item label="External Filter" />
+								<item label="Change Tracking API" />
+								<item label="Row Span and Col Span" />
+								<item label="Remoting Backend" />
+								<item label="Trader View" />
+								<item label="Selection Options" />
+</folder>
+						)));
+			[Bindable()]
+			private var loaded:Boolean=false;
+			[Bindable()]
+			private var hasQueryString:Boolean=false;
+			
+			
+			private var urlLoader:URLLoader;
+			private function loadDoc(param0:String):void {
+				documentationBox.source=param0;
+			}
+			private function urlLoader_complete(event:Event):void
+			{
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	<mx:VBox width="100%" height="100%" id="loading" includeInLayout="{!loaded}" visible="{!loaded}">
+	<mx:Spacer height="100%"/>
+		<mx:HBox width="100%">
+			<mx:Spacer width="100%"/>
+				<mx:ProgressBar id="progress" mode="manual" label="Loading In Memory Database...%3%%"/>
+			<mx:Spacer width="100%"/>
+		</mx:HBox>
+	<mx:Spacer height="100%"/>
+	</mx:VBox>
+	<mx:VBox id="boxSingleExample" width="100%" height="100%" includeInLayout="{loaded &amp;&amp; hasQueryString}" visible="{loaded&amp;&amp; hasQueryString}">
+		
+	</mx:VBox>
+	<mx:HDividedBox width="100%" height="100%" includeInLayout="{loaded &amp;&amp; !hasQueryString}" visible="{loaded&amp;&amp; !hasQueryString}">
+		<mx:Tree id="tree" dataProvider="{xml}" showRoot="false" labelField="@label" height="100%" width="20%" click="tree1_clickHandler(event)" 
+				 >
+		</mx:Tree>
+			<mx:TabNavigator width="80%" height="100%" id="tbMain">
+				<code:IFrame width="100%" height="100%" id="intro" label="Introduction">
+				</code:IFrame>
+				<mx:VBox width="100%" height="100%" label="Demo" >
+					<mx:Label text="{tree.selectedItem.@label}"  fontSize="20" fontWeight="bold" selectable="true"/>
+					<mx:VBox width="100%" height="100%" id="demoBox" paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5">
+						<mx:Label text="Please select an item on the left"/>	
+					</mx:VBox>
+					<mx:Image includeInLayout="false" visible="false" id="screenshot"/>
+				</mx:VBox>
+				<code:IFrame width="100%" height="100%" id="documentationBox" label="Explanation">
+				</code:IFrame>
+				<code:IFrame width="100%" height="100%" id="sourceBox" label="Source">
+				</code:IFrame>
+			</mx:TabNavigator>
+	</mx:HDividedBox>
+	
+</mx:VBox>

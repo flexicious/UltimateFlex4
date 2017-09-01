@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" 
+		 >
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.example.view.support.customprint.MyCustomPager;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+			protected function cbxNav_changeHandler(event:ListEvent):void
+			{
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:HBox>
+		<mx:Label text="Choose Organization:"/>
+		<mx:ComboBox id="cbxNav" dataProvider="{FlexiciousMockGenerator.instance().getDeepOrgList()}" 
+					 change="cbxNav_changeHandler(event)" labelField="legalName"/>
+	</mx:HBox>
+	<mx:Label text="Organization Details"/>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%"  enablePrint="true" height="100%"
+									 enablePreferencePersistence="true" enableDrillDown="true" 
+									 enableExport="true" enableCopy="true" dataProvider="{cbxNav.selectedItem.deals}"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="nesteddata" forcePagerRow="true"
+									 >
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel enablePaging="true" pageSize="3"  childrenField="invoices" enableFooters="true" selectedKeyField="id"
+														initialSortField="dealDate" initialSortAscending="false"
+														pagerRenderer="com.flexicious.example.view.support.customprint.MyCustomPager">
+				
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealDescription" headerText="Deal Description"   
+														   footerLabel="Count:" footerOperation="count" footerAlign="center"
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealAmount" headerText="Deal Amount" textAlign="right" 
+														   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealDate" headerText="Deal Date" labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel childrenField="lineItems" enableFooters="true" enablePaging="true" pageSize="3"
+																selectedKeyField="id">
+						<nestedtreedatagrid:columns>
+							<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="Invoice Number" 
+																   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																   />
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceAmount" headerText="Invoice Amount" textAlign="right" 
+																   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+																   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceStatus.name" headerText="Invoice Status" />
+							
+							<nestedtreedatagrid:FlexDataGridColumn dataField="invoiceDate" headerText="Invoice Date" 
+																   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+							<nestedtreedatagrid:FlexDataGridColumn dataField="dueDate" headerText="Due Date" 
+																   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+						</nestedtreedatagrid:columns>
+						<nestedtreedatagrid:nextLevel>
+							<nestedtreedatagrid:FlexDataGridColumnLevel enableFooters="true" selectedKeyField="id">
+								<nestedtreedatagrid:columns>
+									<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+									<nestedtreedatagrid:FlexDataGridColumn dataField="lineItemDescription" headerText="Line Item Description" 
+																		   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+																		   />
+									<nestedtreedatagrid:FlexDataGridColumn dataField="lineItemAmount" headerText="Line Item Amount" textAlign="right" 
+																		   footerLabel="Total:" footerOperation="sum" footerAlign="right" 
+																		   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+																		   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+									
+								</nestedtreedatagrid:columns>
+							</nestedtreedatagrid:FlexDataGridColumnLevel>
+						</nestedtreedatagrid:nextLevel>
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

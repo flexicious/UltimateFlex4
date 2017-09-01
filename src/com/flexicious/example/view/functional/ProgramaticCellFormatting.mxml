@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridDataCell;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridDataCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.controls.Tree;
+			import mx.core.UITextField;
+			
+			private function getRowBackground(cell:IFlexDataGridCell):*{
+				if(cell.isDataCell&& cell.rowInfo.data.headquarterAddress.state.name=="New York"){
+					return 0xCFCFCF;
+				}else if(cell.rowInfo.isFillRow){
+					return [0xCFCFCF,0xFFFFFF]
+				}
+				return null;
+			}
+			private function getRowTextColor(cell:IFlexDataGridCell):*{
+				if(cell.isDataCell&& cell.rowInfo.data.headquarterAddress.state.name=="New York"){
+					return 0xCC3300;
+				}
+				return null;
+			}
+			
+			private function getColumnBackground(cell:IFlexDataGridCell):*{
+				if(cell.level.selectedKeys.contains(UIUtils.resolveExpression(cell.rowInfo.data,cell.level.selectedKeyField))){
+					return grid.getStyle("selectionColor");
+				}
+				var val:*=UIUtils.resolveExpression(cell.rowInfo.data,cell.column.dataField);
+				if(val<10000){
+					return 0xCC3300;
+				}else if(val>50000){
+					return 0x66BB88;
+				}
+				else {
+					return null;
+				}
+			}
+			private function getColumnTextColor(cell:IFlexDataGridCell):*{
+				var val:*=UIUtils.resolveExpression(cell.rowInfo.data,cell.column.dataField);
+				if(val<10000){
+					return 0xFFFFFF;
+				}else if(val>50000){
+					return 0x000000;
+				}
+				else {
+					return 0x000000;
+				}
+			}
+			
+			private function getRowDisabled(cell:IFlexDataGridCell, data:Object):Boolean{
+				if(data.legalName=='Adobe Systems'){
+					return true;
+				}
+				return false;//do not disable by default.
+			}
+
+
+
+			protected function grid_rendererInitializedHandler(event:FlexDataGridEvent):void
+			{
+				//this function gets called whenever any type of a cell is instantiated.
+				//This cell could be brand new, or recycled, so we have to reset any
+				//changes we might made to it first.
+				var cell:IFlexDataGridDataCell = event.cell as IFlexDataGridDataCell;
+				if(cell ){
+					//cell.setStyle("fontWeight","normal");//set it back to normal first....
+					if(cell.rowInfo.data.legalName=='3M Co'){
+						//cell.setStyle("fontWeight","bold");
+					}
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<nestedtreedatagrid:FlexDataGrid  width="100%" height="100%" id="grid" 
+										 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+										 enableFooters="true" enableFilters="true" cellBackgroundColorFunction="getRowBackground"
+										 cellTextColorFunction="getRowTextColor"
+										 rendererInitialized="grid_rendererInitializedHandler(event)" enableExport="true" 
+										 preferencePersistenceKey="programaticCellFormatting" forcePagerRow="true">
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel  selectedKeyField="id" 
+														  rowDisabledFunction="getRowDisabled"
+														 >
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="legalName" headerText="Legal Name"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" 
+														   filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" 
+														   filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" 
+														   filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn width="50" columnWidthMode="fixed" 
+															   cellBackgroundColorFunction="getColumnBackground" 
+															   cellTextColorFunction="getColumnTextColor"
+															   dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" headerAlign="center" footerLabel="Avg:" 
+															   footerOperation="average" footerAlign="center" footerOperationPrecision="2" 
+															   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn width="50"  columnWidthMode="fixed" 
+														   		cellBackgroundColorFunction="getColumnBackground" 
+															   cellTextColorFunction="getColumnTextColor"
+															   dataField="numEmployees" headerText="Num Employees" textAlign="right" footerLabel="Avg:" 
+															   footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+															   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn width="50" columnWidthMode="fixed" dataField="earningsPerShare" headerText="EPS" textAlign="right" footerLabel="Avg:" 
+														   footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn width="50" columnWidthMode="fixed" dataField="lastStockPrice" headerText="Stock Price" 
+														   textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" 
+														   footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</nestedtreedatagrid:columns>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+			
+		</nestedtreedatagrid:columnLevel>
+		
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox>

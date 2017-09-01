@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:controls="com.flexicious.controls.*">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.ListEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+
+			protected function cbxNav_changeHandler(event:ListEvent):void
+			{
+				//grid.gotoItem(cbxNav.selectedItem);
+				grid.gotoKey(cbxNav.selectedItem.id,true);//the second parameter does the hover over...
+			}
+
+
+			protected function btnSelect_clickHandler(event:MouseEvent):void
+			{
+				if(!grid.columnLevel.isItemSelected(cbxNav.selectedItem,false))
+					grid.addSelectedItem(cbxNav.selectedItem);
+			}
+			[Bindable]
+			private var matchedObjects:ArrayCollection=new ArrayCollection();
+			private var textMatched:String="";
+			[Bindable]
+			private var currentMatch:int=1;
+			protected function textinput1_keyDownHandler(event:KeyboardEvent):void
+			{
+				if(event.keyCode== Keyboard.ENTER){
+					if(event.shiftKey){
+						if(currentMatch>1)
+							currentMatch--;
+					} 
+					else if(currentMatch<matchedObjects.length){
+							currentMatch++;
+					}
+					if(textMatched!=txtFind.text){
+						textMatched=txtFind.text
+						matchedObjects=new ArrayCollection();
+						for each(var matchedObject:Object in grid.quickFind(txtFind.text))
+						matchedObjects.addItem(matchedObject);
+						currentMatch=1;			
+					}
+					if(currentMatch<=matchedObjects.length && currentMatch>0){
+						grid.gotoItem(matchedObjects[currentMatch-1],true);
+						grid.selectText(textMatched);
+					}
+				}
+			}
+
+
+			protected function txtFind_changeHandler(event:Event):void
+			{
+				
+				
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="650" height="100%" enablePrint="true" enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true"
+									 dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="programmaticCellNavigation">
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel selectedKeyField="id" enablePaging="true" pageSize="50" enableFilters="true"
+														enableFooters="true" 
+														>
+				
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="legalName" headerText="Legal Name"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="annualRevenue" headerText="Annual Revenue" textAlign="right" headerAlign="center" footerLabel="Avg:" footerOperation="average" footerAlign="center" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="numEmployees" headerText="Num Employees" textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="earningsPerShare" headerText="EPS" textAlign="right" footerLabel="Avg:" footerOperation="average" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="lastStockPrice" headerText="Stock Price" textAlign="right" footerLabel="Avg:" footerOperation="average" footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" labelFunction="UIUtils.dataGridFormatCurrencyLabelFunction"/>
+				</nestedtreedatagrid:columns>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	<mx:HBox>
+		<mx:Label text="Navigate To:"/>
+		<mx:ComboBox id="cbxNav" dataProvider="{FlexiciousMockGenerator.instance().getFlatOrgList()}" change="cbxNav_changeHandler(event)" labelField="legalName"/>
+		<mx:Button id="btnSelect" label="Select Item" click="btnSelect_clickHandler(event)"/>
+		<mx:Button id="btnClear" label="Clear Selection" click="grid.clearSelection()"/>
+		<mx:Label text="{grid.selectedObjects.length} selected items."/>
+	</mx:HBox>
+	<mx:HBox>
+		
+		<controls:TextInput watermark="Enter Search Term, Enter=Find Next,Shift+Enter=Find Previous" id="txtFind" keyDown="textinput1_keyDownHandler(event)"
+							change="txtFind_changeHandler(event)" width="300"/>
+		<mx:Label text="{matchedObjects.length?'Item ' + currentMatch + ' of '+ matchedObjects.length + ' Items Found.':'No Items Found'}"/>
+	</mx:HBox>
+</mx:VBox>

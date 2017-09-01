@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.utils.UIUtils;
+			
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrgList(function(evt:ResultEvent,token:AsyncToken):void{grid.dataProvider=evt.result})
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true"  enableDrillDown="true"
+									 enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 preferencePersistenceKey="levelRenderers2">
+		
+		<nestedtreedatagrid:columnLevel >
+			<nestedtreedatagrid:FlexDataGridColumnLevel enableFilters="true" enablePaging="true" rendererHorizontalGridLines="true" rendererDrawTopBorder="true"
+														rendererVerticalGridLines="true"
+														pageSize="20" childrenField="deals" enableFooters="true" selectedKeyField="id"
+														footerDrawTopBorder="true" levelRendererHeight="150">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridCheckBoxColumn  />
+					<nestedtreedatagrid:FlexDataGridColumn enableCellClickRowSelect="false" columnWidthMode="fitToContent" 
+														   selectable="true" dataField="id" headerText="ID" filterControl="TextInput"/>
+					<nestedtreedatagrid:FlexDataGridColumn truncateToFit="true"  enableCellClickRowSelect="false" columnWidthMode="fitToContent"
+														   selectable="true" dataField="legalName" headerText="Legal Name"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line1" headerText="Address Line 1" footerLabel="Count:" footerOperation="count"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.line2" headerText="Address Line 2"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.city.name" headerText="City" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.state.name" headerText="State" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="headquarterAddress.country.name" headerText="Country" filterControl="MultiSelectComboBox" filterComboBoxBuildFromGrid="true" filterComboBoxWidth="150"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevelRenderer >
+					<fx:Component>
+						<mx:HBox horizontalScrollPolicy="off" verticalScrollPolicy="off" 
+								 width="100%" verticalGap="0" >
+							<fx:Script>
+								<![CDATA[
+									import com.flexicious.example.model.organizations.Organization;
+									import com.flexicious.utils.UIUtils;
+									[Bindable()]
+									private var organization:Organization;
+									
+									public override function set data(val:Object):void{
+										super.data=val;
+										organization = data as Organization;
+										
+									}
+									
+								]]>
+							</fx:Script>
+							<mx:Panel width="33%" verticalGap="0" horizontalGap="0" title="Basic Information" 
+									  paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+								<mx:Form width="33%" verticalGap="0" horizontalGap="0" 
+									 paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+								<mx:FormItem label="Organization Name">
+									<mx:Label text="{organization.legalName}"/>
+								</mx:FormItem>	
+								<mx:FormItem label="Sales Contact">
+									<mx:Label text="{organization.salesContact.displayName}"/>
+								</mx:FormItem>	
+								<mx:FormItem label="Sales Contact Phone">
+									<mx:Label text="{organization.salesContact.telephone}"/>
+								</mx:FormItem>	
+							</mx:Form>
+							</mx:Panel>
+							<mx:Panel width="33%" verticalGap="0" horizontalGap="0" title="Financials" 
+									 paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+								<mx:Form width="100%" verticalGap="0" horizontalGap="0" 
+										 paddingTop="0" paddingBottom="0" paddingLeft="0" paddingRight="0">
+									<mx:FormItem label="Annual Revenue:">
+									<mx:Label text="{UIUtils.formatCurrency(organization.annualRevenue)}"/>
+									</mx:FormItem>	
+									<mx:FormItem label="EPS:">
+										<mx:Label text="{UIUtils.formatCurrency(organization.earningsPerShare)}"/>
+									</mx:FormItem>	
+									<mx:FormItem label="Last Stock Price:">
+										<mx:Label text="{UIUtils.formatCurrency(organization.lastStockPrice)}"/>
+									</mx:FormItem>	
+									<mx:FormItem label="Employee:">
+										<mx:Label text="{organization.numEmployees}"/>
+									</mx:FormItem>	
+								</mx:Form>
+							</mx:Panel>
+							<mx:PieChart id="myChart"  height="150"
+											 dataProvider="{organization.deals}" 
+											 showDataTips="true"
+											 >
+									<mx:series>
+										<mx:PieSeries 
+											field="dealAmount" 
+											nameField="dealDescription" 
+											labelPosition="callout"
+											/>
+									</mx:series>
+						</mx:PieChart>
+							
+						</mx:HBox>											
+					</fx:Component>
+				</nestedtreedatagrid:nextLevelRenderer>
+		</nestedtreedatagrid:FlexDataGridColumnLevel>
+	</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

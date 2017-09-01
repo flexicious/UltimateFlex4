@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*"
+			>
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.FlexDataGridColumn;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.events.FlexEvent;
+			import mx.formatters.NumberFormatter;
+			
+			import pdf.AlivePdfGenerator;
+
+			
+			
+			private function addColumn(dataField:String,headerText:String):FlexDataGridColumn
+			{
+				var dgCol:FlexDataGridColumn = new FlexDataGridColumn();
+				dgCol.dataField=dataField;
+				dgCol.headerText=headerText;
+				dgCol.filterControl="TextInput";
+				dgCol.filterOperation="BeginsWith";
+				dgCol.filterWaterMark = "Begins With";
+				return dgCol;
+			}
+			private function addCurrencyColumn(dataField:String,headerText:String):FlexDataGridColumn
+			{
+				var dgCol:FlexDataGridColumn = addColumn(dataField,headerText);
+				dgCol.labelFunction=UIUtils.dataGridFormatCurrencyLabelFunction;
+				dgCol.setStyle("textAlign","right");
+				dgCol.footerOperation="average";
+				dgCol.footerLabel="Avg: ";
+				dgCol.footerAlign="right";
+				dgCol.setStyle("paddingRight",15);
+				dgCol.filterOperation="GreaterThan";
+				dgCol.filterWaterMark = "Greater Than";
+				return dgCol;
+			}
+			private function addDateColumn(dataField:String,headerText:String):FlexDataGridColumn
+			{
+				var dgCol:FlexDataGridColumn = addColumn(dataField,headerText);
+				dgCol.labelFunction=UIUtils.dataGridFormatDateLabelFunction;
+				dgCol.filterControl="DateComboBox";
+				return dgCol;
+			}
+
+
+			protected function grid_creationCompleteHandler(event:FlexEvent):void
+			{
+				grid.dataProvider = FlexiciousMockGenerator.instance().getFlatOrgList()
+				grid.clearColumns();
+				var col:FlexDataGridColumn=addColumn("id","Company ID");
+				col.columnLockMode=FlexDataGridColumn.LOCK_MODE_LEFT
+				grid.addColumn(col);
+				col=addColumn("legalName","Company Name");
+				col.columnLockMode=FlexDataGridColumn.LOCK_MODE_RIGHT
+				grid.addColumn(col);
+				grid.addColumn(addColumn("headquarterAddress.line1","Address Line 1"));
+				grid.addColumn(addColumn("headquarterAddress.line2","Address Line2"));
+				grid.addColumn(addCurrencyColumn("earningsPerShare","EPS"));
+				grid.addColumn(addColumn("headquarterAddress.line1","Address Line 1"));
+				grid.addColumn(addColumn("headquarterAddress.line2","Address Line2"));
+				grid.addColumn(addCurrencyColumn("earningsPerShare","EPS"));
+				grid.addColumn(addColumn("headquarterAddress.line1","Address Line 1"));
+				grid.addColumn(addColumn("headquarterAddress.line2","Address Line2"));
+				grid.addColumn(addCurrencyColumn("earningsPerShare","EPS"));
+				grid.addColumn(addColumn("headquarterAddress.line1","Address Line 1"));
+				grid.addColumn(addColumn("headquarterAddress.line2","Address Line2"));
+				grid.addColumn(addCurrencyColumn("earningsPerShare","EPS"));
+				grid.distributeColumnWidthsEqually();
+				grid.reDraw();
+			}
+			
+
+			protected function btnAddCol_clickHandler(event:MouseEvent):void
+			{ 
+				var col:FlexDataGridColumn=addCurrencyColumn("lastStockPrice","Last Stock Price")
+				grid.addColumn(col);
+				grid.distributeColumnWidthsEqually();
+				grid.reDraw();
+			}
+
+
+			protected function btnRemoveCol_clickHandler(event:MouseEvent):void
+			{
+				grid.removeColumn(grid.getColumnByDataField("lastStockPrice"));
+				grid.distributeColumnWidthsEqually();
+				grid.reDraw();
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:HBox>
+		<mx:Button label="Add Last Stock Price Column" id="btnAddCol" click="btnAddCol_clickHandler(event)"/>
+		<mx:Button label="Remove Last Stock Price Column" id="btnRemoveCol" click="btnRemoveCol_clickHandler(event)"/>
+	</mx:HBox>
+	<nestedtreedatagrid:FlexDataGrid horizontalScrollPolicy="on"  id="grid" width="100%" height="100%" enablePrint="true" enablePreferencePersistence="true"
+									 enableExport="true" enableCopy="true" enableFilters="true" enableFooters="true" enablePaging="true" preferencePersistenceKey="dynamicColumns"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)"
+									 creationComplete="grid_creationCompleteHandler(event)">
+		
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox>

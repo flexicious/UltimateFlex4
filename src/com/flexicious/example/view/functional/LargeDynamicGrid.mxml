@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*"
+		 creationComplete="hbox1_creationCompleteHandler(event)">
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace nestedtreedatagrid "com.flexicious.nestedtreedatagrid.*";
+		.cgStyle{
+			padding-left:10;
+			text-align:center;
+			font-weight:bold;
+			left:10;
+		}
+	</fx:Style>
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.FlexDataGridColumn;
+			import com.flexicious.nestedtreedatagrid.FlexDataGridColumnGroup;
+			import com.flexicious.nestedtreedatagrid.FlexDataGridColumnLevel;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridDataCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.formatters.NumberFormatter;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import pdf.AlivePdfGenerator;
+			[Bindable()]
+			private var _dataProvider:Object;
+			[Bindable()]
+			private var _colCount:Number=0;
+			[Bindable()]
+			private var _rowCount:Number=0;
+			
+			private var makeModels:Array=
+				[
+					{"make":"Toyota","models":["4Runner","Avalon","Camry","Celica","Corolla","Corona","Cressida","Echo","FJ Cruiser","Highlander","Land Cruiser","MR2","Matrix","Paseo","Pickup","Previa","Prius","RAV4","Seqouia","Sienna","Solara","Supra"]},
+					{"make":"Lexus","models":["CT","ES250","ES300","ES330","ES350","GS300","GS350","GS400","GS430","GS460","GX460","GX470"]},
+					{"make":"Honda","models":["Accord","CRV","CRX","Civic","Del Sol","Element","Fit","Insight","Odyssey","Passport","Pilot","Prelude","S2000"]},
+					{"make":"Acura","models":["Integra","Legend","MDX","NSX","RDX","RSX","SLX","3.2TL","2.5TL","Vigor","ZDX"]},
+					{"make":"Nissan","models":["200SX","240SX","300ZX","350Z","370Z","Altima","Armada","Cube","Frontier","GT-R","Juke","Leaf","Maxima","Murano","NX","PathFinder","Pickup","Pulsar","Quest"]},
+					{"make":"Infiniti","models":["EX35","FX35","FX45","G20","G25","G35","I30","I35","J30","M30"]}
+				 ]
+			private var colors:Array=["Red" ,"Yellow","Silver","Green","Tan","White","Blue","Burgundy","Black","Orange"];
+			protected function hbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				numberFormatter.precision=0;
+				_colCount=0;
+				var dp:ArrayCollection = new ArrayCollection();
+				var gridCgs:Array=[];
+				var allCols:Array=[];
+				var mCol:FlexDataGridColumn = new FlexDataGridColumn();
+				mCol.headerText = "Make";
+				mCol.dataField  = "make";
+				mCol.width=100
+				mCol.columnLockMode="left";
+				gridCgs.push(mCol);
+				mCol = new FlexDataGridColumn();
+				mCol.headerText = "Model";
+				mCol.dataField  = "model";
+				mCol.width=100
+				mCol.columnLockMode="left";
+				gridCgs.push(mCol);
+				mCol = new FlexDataGridColumn();
+				mCol.headerText = "Color";
+				mCol.dataField  = "color";
+				mCol.width=100
+				mCol.columnLockMode="left";
+				gridCgs.push(mCol);
+				for each(var m:Object in makeModels){
+					var mk:Object = {};
+					dp.addItem(mk);
+					mk.make = m.make;
+					mk.children = new ArrayCollection();
+					for each(var mod:String in m.models){
+						mk.children.addItem({"model":mod});
+					}
+				}	
+				
+				for (var i:int=1950;i<=2012;i++){
+					
+					
+					
+					var ycg:FlexDataGridColumnGroup  =new FlexDataGridColumnGroup(); 
+					gridCgs.push(ycg);
+					ycg.enableExpandCollapse=true;
+					ycg.headerText = i.toString();
+					for (var j:int=1;j<=4;j++){
+						var qcg:FlexDataGridColumnGroup =new FlexDataGridColumnGroup();
+						ycg.columnGroups.push(qcg);
+						qcg.enableExpandCollapse=true;
+						qcg.headerText = ycg.headerText + "-Q" + j.toString();
+						var qCols:Array=[];
+						for each(var month:String in getMonths(j)){
+							mCol = new FlexDataGridColumn();
+							mCol.headerText = ycg.headerText+" " + month;
+							mCol.dataField  = qcg.headerText + ycg.headerText + month;
+							//mCol.footerOperation = "sum";
+							//mCol.footerAlign="right";
+							mCol.editable=true;
+							mCol.isEditableFunction=isEditable
+							mCol.footerFormatter = numberFormatter;
+							mCol.labelFunction = dataGridFormatNumberLabelFunction;
+							//mCol.useHandCursor = true
+							mCol.footerOperationPrecision = 0;
+							mCol.width=60
+							mCol.setStyle("textAlign","right");
+							qCols.push(mCol);
+							allCols.push(mCol);
+							_colCount++;
+						}
+						qcg.columns=qCols;
+					}
+				}
+				for each(var dpItem:Object in dp){
+					for each(var model:Object in dpItem.children){
+						model.children = new ArrayCollection();
+						for each(var cl:String in colors){
+							var color:Object = {"color":cl};
+							model.children.addItem(color);
+							for each(mCol in allCols){
+								color[mCol.dataField]=FlexiciousMockGenerator.getRandom(100,1000);
+							}
+							_rowCount++;
+						}
+					}
+				}
+				for each(mCol in allCols){
+					for each( dpItem in dp){
+						var total:Number=0;
+						for each( model in dpItem.children){
+							var modeltotal:Number=0;
+							for each( color in model.children){
+								modeltotal+=color[mCol.dataField];
+							}
+							model[mCol.dataField]=modeltotal;
+							total+=modeltotal;
+						}
+						dpItem[mCol.dataField]=total;
+					}
+				}
+				
+				
+				grid.columnLevel.groupedColumns = gridCgs;
+				//grid.columnLevel.enableFooters = true;
+				grid.columnLevel.childrenField="children";
+				grid.columnLevel.nextLevel = new FlexDataGridColumnLevel();
+				grid.columnLevel.nextLevel.reusePreviousLevelColumns=true;
+				//grid.columnLevel.nextLevel.enableFooters = true;
+				grid.columnLevel.nextLevel.childrenField="children";
+				grid.columnLevel.nextLevel.nextLevel = new FlexDataGridColumnLevel();
+				grid.columnLevel.nextLevel.nextLevel.reusePreviousLevelColumns=true;
+				//grid.columnLevel.nextLevel.nextLevel.enableFooters = true;
+				grid.dataProvider=dp;
+			}
+			
+			private function isEditable(cell:IFlexDataGridDataCell):Boolean{
+				return (cell.level.nestDepth==3)
+			}
+			private function getMonths(j:int):Object
+			{
+				if(j==1){
+					return ["Jan", "Feb", "Mar"];
+				}else if(j==2){
+					return ["Apr", "May", "June"];
+				}else if(j==3){
+					return ["Jul", "Aug", "Sep"];
+				}else if(j==4){
+					return ["Oct", "Nov", "Dec"];
+				}
+				return[]
+			}
+			private function dataGridFormatNumberLabelFunction(item:Object, dgColumn:Object):String
+			{
+				if(item.hasOwnProperty(dgColumn.dataField))
+				{
+					var number:Number = item[dgColumn.dataField] as Number;
+					if(number)
+						return formatCurrency(number,' ');
+				}
+				else 
+					return null;
+				return item[dgColumn.dataField];
+			}
+
+			private function formatCurrency(number:Number, param1:String):String
+			{
+				return numberFormatter.format(number);
+				// TODO Auto Generated method stub
+			}
+			private var numberFormatter:NumberFormatter = new NumberFormatter();
+			
+		]]>
+	</fx:Script>
+	<mx:VBox width="100%" height="100%" >
+		<s:Label text="Loading {_rowCount} records, {_colCount} columns"/>
+		<mx:HBox>
+			<mx:RadioButton label="Expand Rows" groupName="rowExpand" click="grid.expandAll()"/>
+			<mx:RadioButton label="Collapse Rows" selected="true" groupName="rowExpand" click="grid.collapseAll()"/>
+		</mx:HBox>
+		<mx:HBox>
+			<mx:RadioButton label="Expand Columns" groupName="colExpand" click="grid.expandAllColumnGroups()" selected="true"/>
+			<mx:RadioButton label="Collapse Columns" groupName="colExpand" click="grid.collapseAllColumnGroups()" />
+		</mx:HBox>
+		<mx:HBox width="100%"  height="100%" >
+			<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%"  horizontalScrollPolicy="on" 
+											 preferencePersistenceKey="largeDynamicGrid" columnGroupStyleName="cgStyle">
+				
+			</nestedtreedatagrid:FlexDataGrid>
+		</mx:HBox>
+	</mx:VBox>
+</mx:HBox>

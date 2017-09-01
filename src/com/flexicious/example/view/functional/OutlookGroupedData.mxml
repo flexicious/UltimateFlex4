@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="100%" 
+		 xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*" xmlns:billing="com.flexicious.example.model.billing.*"
+		 xmlns:controls="com.flexicious.controls.*" xmlns:mate="http://mate.asfusion.com/" creationComplete="vbox1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.flexicious.example.model.billing.Invoice;
+			import com.flexicious.example.model.common.SystemConstants;
+			import com.flexicious.example.model.organizations.Organization;
+			import com.flexicious.example.model.transactions.Deal;
+			import com.flexicious.example.serviceproxies.BusinessService;
+			import com.flexicious.example.utils.ExampleUtils;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridDataCell;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridEvent;
+			import com.flexicious.nestedtreedatagrid.events.FlexDataGridPrintEvent;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridCell;
+			import com.flexicious.nestedtreedatagrid.interfaces.IFlexDataGridDataCell;
+			import com.flexicious.utils.UIUtils;
+			
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.IUITextField;
+			import mx.core.UIFTETextField;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			import pdf.AlivePdfGenerator;
+			
+			
+			
+			
+			protected function vbox1_creationCompleteHandler(event:FlexEvent):void
+			{
+				BusinessService.getInstance().getDeepOrgList(function(evt:ResultEvent,token:AsyncToken):void{grid.dataProvider=evt.result})
+			}
+			
+			private function returnFalse(cell:IFlexDataGridCell,data:*):Boolean{
+				return false;
+			}
+			private function getInvoiceAmount(data:Object,col:FlexDataGridColumn):String{
+				var val:Number=0;
+			    if(data is Deal)
+					val=(data as Deal).dealAmount;
+				else if(data is Organization)
+					val= (data as Organization).relationshipAmount;
+				
+				return UIUtils.formatCurrency(val);
+			}
+			protected function amountSortCompareFunction(obj1:Object, obj2:Object):int{
+				if(obj1 is Organization && obj2 is Organization){
+					return ObjectUtil.numericCompare(obj1.relationshipAmount,obj2.relationshipAmount);
+				}
+				else if(obj1 is Deal && obj2 is Deal){
+					return ObjectUtil.numericCompare(obj1.dealAmount,obj2.dealAmount);
+				}
+				else if(obj1 is Invoice && obj2 is Invoice){
+					return ObjectUtil.numericCompare(obj1.invoiceAmount,obj2.invoiceAmount);
+				}
+				return 0;
+
+			}
+
+			protected function getBlueColor(cell:IFlexDataGridCell):*
+			{
+				//since the text color changes when hte user hovers over, or selects (potentially) we always want it to be blue.
+				return 0x3764A0;
+			}
+			protected function grid_rendererInitializedHandler(event:FlexDataGridEvent):void
+			{
+				var cell:IFlexDataGridCell=event.cell;
+				if((cell is IFlexDataGridDataCell)){//the dg has various types of cells. we only want to style the data cells...
+					if(cell.level.nestDepth==1){
+						//at the first level, we want font to be bold ...
+						//cell.setStyle("fontWeight","bold");
+						cell.setStyle("fontWeight","bold");
+						
+					}
+					else{
+						cell.setStyle("fontWeight","normal");
+					}
+					
+				}
+			}
+			
+			[Embed(source="/assets/images/plus.gif")]
+			public var plus:Class;
+			
+			[Embed(source="/assets/images/minus.gif")]
+			public var minus:Class;
+
+			protected function grid_beforePrintHandler(event:FlexDataGridPrintEvent):void
+			{
+				event.printGrid.styleName="gridStyle";
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace billing "com.flexicious.example.model.billing.*";
+		@namespace controls "com.flexicious.controls.*";
+		@namespace mate "http://mate.asfusion.com/";
+		.myHeader{
+			padding-top:0;
+			font-weight:"bold";
+			color:"0x3764A0";
+		}
+		.gridStyle{
+			fontFamily:"tahoma";
+			fontSize:"11"; 
+			verticalGridLines:false; 
+			horizontalGridLines:true;
+			headerColors: #EEEEEE,#EEEEEE ;
+			headerRollOverColors: #EEEEEE,#EEEEEE ;
+			headerVerticalGridLineColor:#D0D0D0;
+			filterColors: #EEEEEE,#EEEEEE ;
+			filterRollOverColors: #EEEEEE,#EEEEEE ;
+			filterVerticalGridLineColor:#D0D0D0;
+			footerColors: #FFFFFF,#FFFFFF ; 
+			footerRollOverColors: #FFFFFF,#FFFFFF ;
+			footerVerticalGridLines:false;
+			footerHorizontalGridLineColor:#EDEDED;
+			footerStyleName:"myHeader";
+			headerStyleName:"myHeader"; 
+			headerHorizontalGridLineColor:#D0D0D0;
+			selectionColor:#CEDBEF;
+			alternatingItemColors: #FFFFFF,#FFFFFF;
+			rollOverColor:#FFFFFF;
+			disclosureOpenIcon:Embed(source="/assets/images/minus.gif");
+			disclosureClosedIcon:Embed(source="/assets/images/plus.gif");;
+		}
+		
+	</fx:Style>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<nestedtreedatagrid:FlexDataGrid id="grid" width="100%" height="100%" enablePrint="true" 
+									 enablePreferencePersistence="true"  
+									 styleName="gridStyle"
+									 enableDrillDown="true"
+									 preferencePersistenceKey="outlookGroupedData"
+									 rendererInitialized="grid_rendererInitializedHandler(event)"
+									 beforePrint="grid_beforePrintHandler(event)"
+									 enableExport="true" enableCopy="true"
+									 pdfBytesReady="new AlivePdfGenerator().generate(event.target as FlexDataGrid ,event.printOptions)">
+		
+		<nestedtreedatagrid:columnLevel>
+			<nestedtreedatagrid:FlexDataGridColumnLevel paddingTop="15"  enablePaging="true" pageSize="20" childrenField="deals" selectedKeyField="id" 
+			 	horizontalGridLineColor="#99BBE8"
+				horizontalGridLineThickness="2" headerPaddingTop="5" reusePreviousLevelColumns="true"  rowHeight="35" 
+				rowTextColorFunction="getBlueColor" enableFilters="true" initialSortField="legalName">
+				<nestedtreedatagrid:columns>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="legalName" headerText="Organization Name" 
+														  filterControl="TextInput" filterOperation="BeginsWith"/>
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealDescription" headerText="Deal Description" 
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealStatus.name" headerText="Deal Status" 
+														   footerLabel="Count:" footerOperation="count" footerAlign="center" 
+														   />
+					<nestedtreedatagrid:FlexDataGridColumn dataField="dealAmount" headerText="Amount" textAlign="right" 
+														   footerLabel="Total:" footerOperation="sum" footerAlign="right"
+														   footerOperationPrecision="2" footerFormatter="{ExampleUtils.globalCurrencyFormatter}" 
+														   labelFunction="getInvoiceAmount" sortCompareFunction="amountSortCompareFunction"/>
+					
+					<nestedtreedatagrid:FlexDataGridColumn itemEditor="{new ClassFactory(mx.controls.DateField)}"  
+														   dataField="dealDate" headerText="Deal Date"  
+														   labelFunction="UIUtils.dataGridFormatDateLabelFunction"/>
+				</nestedtreedatagrid:columns>
+				<nestedtreedatagrid:nextLevel>
+					<nestedtreedatagrid:FlexDataGridColumnLevel selectedKeyField="id" reusePreviousLevelColumns="true" rowHeight="20" horizontalGridLineColor="0xEDEDED"
+																footerRowHeight="20" horizontalGridLineThickness="1"
+																paddingTop="2" enableFooters="true" initialSortField="dealDate" initialSortAscending="false">
+						
+						
+					</nestedtreedatagrid:FlexDataGridColumnLevel>
+				</nestedtreedatagrid:nextLevel>
+			</nestedtreedatagrid:FlexDataGridColumnLevel>
+		</nestedtreedatagrid:columnLevel>
+	</nestedtreedatagrid:FlexDataGrid>
+	
+</mx:VBox >

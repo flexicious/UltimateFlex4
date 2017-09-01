@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   creationComplete="application1_creationCompleteHandler(event)"
+			 	xmlns:grids="com.Flexicious.xmp.xwt.treetable.grid.*" xmlns:controls="com.flexicious.controls.*" xmlns:functional="com.flexicious.example.view.functional.*"
+				width="100%" height="100%">
+	<fx:Script>
+		<![CDATA[
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.events.FlexEvent;
+			private var xml:String="<grid x='0' y='0' forcePagerRow='true' enableFilters='true' enableMultiColumnSort='true' builtInActions='sort,separator'  width='100%' height='100%' id='dgMain' styleName='FlexiciousGridStyle' enableSelectionCascade='true' enableSelectionBubble='true' enableTriStateCheckbox='true' showSpinnerOnFilterPageSort='true' enableDefaultDisclosureIcon='false'>"+
+				"  <level childrenField='items'  enableFilters='false' nestIndent='20'>"+
+				"    <columns>"+
+				"      <column sortable='false' headerText='' excludeFromSettings='true' enableExpandCollapseIcon='true' width='25' columnWidthMode='fixed'/>"+
+				"      <column type='checkbox'/>"+
+				"      <column headerText='Employee Name' dataField='employeeName' filterControl='TextInput' filterOperation='BeginsWith'  />"+
+				"      <column headerText='Title' dataField='title' filterControl='TextInput' filterOperation='BeginsWith'/>"+
+				"      <column headerText='Email Address' dataField='emailAddress' filterControl='TextInput' filterOperation='BeginsWith'/>"+
+				"      <column headerText='Department' dataField='department' filterControl='TextInput' filterOperation='BeginsWith'/>"+
+				"      <column headerText='Hire Date' dataField='hireDate' filterControl='TextInput' filterOperation='BeginsWith' />"+
+				"      </columns>"+
+				"      <nextLevel>"+
+				"      <level reusePreviousLevelColumns='false' childrenField='items'   headerVerticalGridLineThickness='1' >"+
+				"        <columns>"+
+				"	       <column sortable='false' headerText='' excludeFromSettings='true' enableExpandCollapseIcon='true' width='50' columnWidthMode='fixed' expandCollapseIconLeft='25'/>"+
+				"   	   <column type='checkbox'/>"+
+				"          <column  dataField='project' headerText='Project' />"+
+				"          <column dataField='roleOnProject' headerText='Role On Project'  />"+
+				"          <column dataField='projectStartDate' headerText='Project Start'  />"+
+				"          <column dataField='projectEndDate' headerText='Project End'  />"+
+				"        </columns>"+
+				"        <nextLevel>"+
+				"          <level reusePreviousLevelColumns='false' childrenField='items' headerVerticalGridLineThickness='1'  >"+
+				"            <columns>"+
+				"	       	   <column sortable='false' headerText='' excludeFromSettings='true' width='75' columnWidthMode='fixed'/>"+
+				"   	   	   <column type='checkbox'/>"+
+				"              <column dataField='timeSheetTitle' headerText='TimeSheet Title' />"+
+				"              <column dataField='hours' headerText='Hours'  />"+
+				"              <column dataField='rate' headerText='Rate'  />"+
+				"              <column dataField='totalExpense' headerText='Total Expense'  />"+
+				"            </columns>"+
+				"          </level>"+
+				"        </nextLevel>"+
+				"      </level>"+
+				"    </nextLevel>"+
+				"  </level>"+
+				"</grid>"
+			protected function application1_creationCompleteHandler(event:FlexEvent):void
+			{
+				dgMain.buildFromXml(xml);
+				dgMain.dataProvider=FlexiciousMockGenerator.mockNestedData;
+				dgMain.validateNow();
+				dgMain.expandAll();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:HBox width="100%" height="100%">
+		<mx:VBox width="50%" height="100%">
+			<mx:Text width="100%" 
+					 text="This example demonstrates the change tracking API. As you click on the add or delete buttons, the text area will show the corresponding change. Also, as you edit the cells, the text area will update to show the previous and the current values."/>
+			<functional:MyDataGrid id="dgMain" editable="true" 
+								   width="100%" height="100%"
+								   enableTrackChanges="true"
+							 verticalGridLines="false">
+				
+			</functional:MyDataGrid>
+		</mx:VBox>
+		<mx:Panel width="50%" height="100%" title="Changes">
+			<mx:TextArea width="100%" height="100%" id="txtChanges" text="{dgMain.changes.join('')}"/>
+		</mx:Panel>
+		
+	</mx:HBox>
+</s:VGroup>

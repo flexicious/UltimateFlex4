@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:local="*"
+			   xmlns:mate="http://mate.asfusion.com/"
+			   xmlns:nestedtreedatagrid="com.flexicious.nestedtreedatagrid.*"
+			   xmlns:controls="com.flexicious.controls.*"
+			   xmlns:example="com.flexicious.example.*"
+			   width="100%" height="100%"
+			   creationComplete="application1_creationCompleteHandler(event)"
+			   viewSourceURL="srcview/index.html" xmlns:functional="com.flexicious.example.view.functional.*">
+	<fx:Declarations>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[ 
+ 			
+ 			/* -include-libraries "libs/automation_monkey4.x.swc" */
+			//import com.flexicious.automation.FlexDataGridAutomationImpl; 
+			import mock.FlexiciousMockGenerator;
+			
+			import mx.controls.Menu;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			protected function mockService_resultHandler(event:ResultEvent):void
+			{	
+				
+				/*To enable automation, move the line below in compiler args and uncomment the line below it.
+				-include-libraries "../libs/automation_monkey4.x.swc" "${flexlib}/libs/automation/automation_spark.swc" "${flexlib}/libs/automation/automation.swc" "${flexlib}/libs/automation/automation_agent.swc" "${flexlib}/libs/automation/automation_dmv.swc"
+				 var v:FlexDataGridAutomationImpl;*/			
+
+			}
+			/* 
+			import com.flexicious.automation.DataGridFilterRowAutomationImpl;
+			
+			import com.flexicious.automation.FlexDataGridAutomationImpl;
+			
+			import com.flexicious.automation.FlexDataGridCell2AutomationImpl;
+			
+			import com.flexicious.automation.FlexDataGridCellAutomationImpl;
+			import com.flexicious.automation.FlexDataGridAutomationImpl; 
+			private var v:FlexDataGridAutomationImpl;   
+			
+			 *//* 
+			private var v1:FlexDataGridAutomationImpl;
+			
+			private var v2:DataGridFilterRowAutomationImpl; 
+			
+			private var v3:FlexDataGridCellAutomationImpl;
+			
+			private var v4:FlexDataGridCell2AutomationImpl; */
+
+			protected function application1_creationCompleteHandler(event:FlexEvent):void
+			{
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		
+		
+		<mate:MockRemoteObject id="mockService" delay="1"
+							   mockGenerator="mock.FlexiciousMockGenerator"
+							   result="mockService_resultHandler(event)" showBusyCursor="true">
+			<mate:MockMethod delay="1" name="getEmployees"/>
+		</mate:MockRemoteObject>
+	</fx:Declarations>
+	
+	<example:DemoConsole width="100%" height="100%"/>
+</mx:Application>

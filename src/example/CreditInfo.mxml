@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+		  height="100" verticalScrollPolicy="off">
+	<mx:Script>
+		<![CDATA[
+			import com.flexicious.nestedtreedatagrid.cells.FlexDataGridCell;
+			
+			import model.CreditEnhancement;
+		]]>
+	</mx:Script>
+	
+	<mx:Form>
+		<mx:FormItem label="Description:" direction="horizontal">
+			<mx:TextInput id="txtDescription" text="{(data as CreditEnhancement).description}" />
+		</mx:FormItem>
+		<mx:FormItem label="Provider Organization:" direction="horizontal">
+			<mx:Label text="{(data as CreditEnhancement).provider.name}"/>
+		</mx:FormItem>
+		<mx:FormItem label="Support Amount:" direction="horizontal">
+			<mx:Label text="{(data as CreditEnhancement).amount}"/>
+		</mx:FormItem>
+	
+	</mx:Form>
+	<mx:ControlBar>
+		<mx:Button label="Save" click="data.description=txtDescription.text;(parent as IFlexDataGridCell).level.grid.refreshCells()" />
+	</mx:ControlBar>
+</mx:HBox>
